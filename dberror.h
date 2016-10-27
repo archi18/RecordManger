@@ -20,6 +20,9 @@ typedef int RC;
 #define RC_READ_NON_EXISTING_PAGE 4
 #define RC_READ_FAILED 5
 #define RC_BM_SPC_ALLOC_FAILED 6
+#define RC_UNKNOWN_ERROR 7
+#define RC_IVLD_PAGE_NUM 8
+#define RC_BUFFER_IN_USE 9
 
 #define RC_RM_COMPARE_VALUE_OF_DIFFERENT_DATATYPE 200
 #define RC_RM_EXPR_RESULT_IS_NOT_BOOLEAN 201
@@ -50,6 +53,16 @@ typedef struct PIN_PAGE{
 PIN_PAGE* createFrame(PIN_PAGE *);
 PIN_PAGE* createBufferOfSize(int ,PIN_PAGE *);
 PIN_PAGE* updatePageInfo(PIN_PAGE *,char *, boolean, int, int);
+PIN_PAGE* moveHeadToEnd(PIN_PAGE *head);
+PIN_PAGE* updatePinPageAtLoc(PIN_PAGE *,int ,int , char *);
+PIN_PAGE* moveFrameCurtLocToEnd(PIN_PAGE *head,int curLoc);
+PIN_PAGE* updateFixCountAtFrameLoc(PIN_PAGE *,int,int);
+PIN_PAGE* getFrameFromLoc(PIN_PAGE *, int );
+boolean isPageDirty(PIN_PAGE *,int );
+int isPagePresent(int);
+void shiftPageLookTbl();
+int getIndexPageByFIFO();
+int* returnPagePosition(PIN_PAGE *,int *);
 RC displayBuffContent(PIN_PAGE *);
 
 #define MAKE_SM_FILE_HANDLE()				\

@@ -44,7 +44,9 @@ RC openPageFile (char *fileName, SM_FileHandle *fHandle){
     if (!sm_file){
         return RC_FILE_NOT_FOUND;
     }
+
     fseek(sm_file,ZERO,SEEK_END);
+
     int last_byte_loc = ftell(sm_file);
     int totalNumPages = (int) last_byte_loc / PAGE_SIZE;
     fHandle->fileName =fileName;
@@ -84,13 +86,21 @@ RC destroyPageFile (char *fileName){
 RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
     if(fHandle ==NULL || fHandle->totalNumPages < ONE)
         return RC_FILE_HANDLE_NOT_INIT;
-    if(pageNum > fHandle->totalNumPages)
+    if(pageNum > fHandle->totalNumPages) {
+        printf("\n 11 failed  here ");
         return RC_READ_NON_EXISTING_PAGE;
- //   memPage = (char*) malloc(sizeof(char)*PAGE_SIZE);
+    }
+
     fseek(sm_file,PAGE_SIZE * pageNum, SEEK_SET);
     size_t ret_Read = fread(memPage, PAGE_SIZE, sizeof(char),sm_file);
-    if(ret_Read <= ZERO)
+
+    if(ret_Read <= ZERO) {
+        printf("\n Ftell %d ",ftell(sm_file));
+
+        printf("\n 22 failed here %s ",memPage);
         return RC_READ_NON_EXISTING_PAGE;
+
+    }
     updateSmFileHandle(fHandle->totalNumPages,pageNum,fHandle);
     return RC_OK;
 }
