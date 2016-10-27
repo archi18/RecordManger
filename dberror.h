@@ -50,6 +50,14 @@ typedef struct PIN_PAGE{
     struct PIN_PAGE *nxt_pin_page;
 }PIN_PAGE;
 
+typedef struct BM_FrameStat{
+    int *frameContent_arr;
+    int *framefixCount_arr;
+    boolean *frameDirtyFlg_arr;
+    int numReadIO;
+    int numWriteIO;
+}BM_FrameStat;
+
 PIN_PAGE* createFrame(PIN_PAGE *);
 PIN_PAGE* createBufferOfSize(int ,PIN_PAGE *);
 PIN_PAGE* updatePageInfo(PIN_PAGE *,char *, boolean, int, int);
