@@ -20,7 +20,7 @@ int numWriteIO;
 int buffFrameCount=0;
 int bufferFrameSize;
 int *buffPageLookUpTbl;
-BM_FrameStat *frameStat;
+BM_FrameStat frameStat;
 RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
                   const int numPages, ReplacementStrategy strategy,
                   void *stratData){
@@ -33,17 +33,17 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     numReadIO = 0;
     numWriteIO =0;
 
-    frameStat = (BM_FrameStat *)malloc(sizeof(BM_FrameStat));
-    frameStat->frameContent_arr = (int *)malloc(sizeof(int) * bm->numPages);
-    frameStat->frameDirtyFlg_arr = (int *)malloc(sizeof(int) * bm->numPages);
-    frameStat->framefixCount_arr = (int *)malloc(sizeof(int) * bm->numPages);
-
+    //frameStat = malloc(sizeof(BM_FrameStat));
+    frameStat.frameContent_arr = (int *)malloc(sizeof(int) * bm->numPages);
+    frameStat.frameDirtyFlg_arr = (int *)malloc(sizeof(int) * bm->numPages);
+    frameStat.framefixCount_arr = (int *)malloc(sizeof(int) * bm->numPages);
+    frameStat.numReadIO = 0;
     for(int i=0; i<numPages; i++){
-        frameStat->frameContent_arr[i] = -1;
-        frameStat->frameDirtyFlg_arr[i] = FALSE;
-        frameStat->framefixCount_arr[i] =0;
+        frameStat.frameContent_arr[i] = -1;
+        frameStat.frameDirtyFlg_arr[i] = 0;
+        frameStat.framefixCount_arr[i] = 0;
     }
-    displayFrameStat(frameStat);
+    displayFrameStat(&frameStat);
 
 
     bm->pageFile = pageFileName;
@@ -116,6 +116,7 @@ RC forceFlushPool(BM_BufferPool *const bm){
             if(indexFrame==-1)
                 return RC_IVLD_PAGE_NUM;
             tempPage = getFrameFromLoc(firstPage,indexFrame);
+            printf("\n Page Num %d:: Fix count :: %d",tempPage->pageNum,tempPage->fixCount);
             if(tempPage->fixCount ==0){
                 if(tempPage->isDirty==TRUE){
                     ph = (SM_PageHandle)malloc(PAGE_SIZE);
@@ -124,8 +125,10 @@ RC forceFlushPool(BM_BufferPool *const bm){
                         return RC_WRITE_FAILED;
                     }
                     tempPage->isDirty=FALSE;
-                    numWriteIO = numWriteIO + 1;
+                    updatePageFrameStat(tempPage,&frameStat,0,-1);
+                    printf("\n Wring page %d",tempPage->pageNum);
                 }
+                numWriteIO = numWriteIO + 1;
             }
         }
     }
@@ -146,7 +149,8 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
 
     tempPage = getFrameFromLoc(firstPage,indexFrame);
     tempPage->isDirty = TRUE;
-
+    updatePageFrameStat(tempPage,&frameStat,1,0);
+    displayDirtyFLgFrameStat(&frameStat);
     return RC_OK;
 }
 RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
@@ -161,6 +165,7 @@ RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
     else
         printf("\n before unpined %d",tempPage->fixCount);
         tempPage = updateFixCountAtFrameLoc(firstPage,indexFrame,-1);
+        updatePageFrameStat(tempPage,&frameStat,tempPage->isDirty,-1);
         page->data = tempPage->data;
         printf("\n unpined success %d",tempPage->fixCount);
     return RC_OK;
@@ -216,12 +221,23 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         tempPage = updateFixCountAtFrameLoc(firstPage,indexFrame,1);
         page->data = tempPage->data;
         page->pageNum = pageNum;
+        int newVal=0;
+
+        updatePageFrameStat(tempPage,&frameStat,tempPage->isDirty,1);
+        if(bm->strategy==RS_LRU)
+            firstPage = moveFrameCurtLocToEnd(firstPage,indexFrame);
         return RC_OK;
     }
+    tempPage = getFrameFromLoc(firstPage,indexFrame);
+    if(tempPage->fixCount > 0)
+        firstPage=moveHeadToEnd(firstPage);
     indexFrame = getIndexPageByFIFO();
     if(indexFrame ==-1)
         return RC_UNKNOWN_ERROR;
     else{
+
+
+
         boolean isDirty = isPageDirty(firstPage,indexFrame);
         if(isDirty){
             tempPage = getFrameFromLoc(firstPage,indexFrame);
@@ -239,6 +255,8 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
             return RC_READ_FAILED;
         }
         tempPage = getFrameFromLoc(firstPage,indexFrame);
+        updateFrameStat(tempPage,&frameStat,pageNum);
+       // displayFrameStat(&frameStat);
         tempPage->fixCount =1;
         tempPage->isDirty = FALSE;
        // sprintf(ph, "%s-%i", "Page", pageNum);
@@ -253,6 +271,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         }
 
         numReadIO = numWriteIO + 1;
+        frameStat.numReadIO = frameStat.numReadIO + 1;
     }
     return RC_OK;
 }
@@ -269,7 +288,8 @@ PageNumber *getFrameContents (BM_BufferPool *const bm){
         tempPage=tempPage->nxt_pin_page;
         i++;
     }
-    return pageFrameLoc;
+    //return pageFrameLoc;
+    return frameStat.frameContent_arr;
 }
 bool *getDirtyFlags (BM_BufferPool *const bm){
     bool *dirtyFlag = (bool*)malloc(sizeof(bool) * bm->numPages);
@@ -277,10 +297,14 @@ bool *getDirtyFlags (BM_BufferPool *const bm){
     PIN_PAGE *tempPage = firstPage;
     int i=0;
     while(tempPage!=NULL){
-        dirtyFlag[i]=tempPage->isDirty;
+        //dirtyFlag[i]=tempPage->isDirty;
+        dirtyFlag[i]=frameStat.frameDirtyFlg_arr[i];
         tempPage=tempPage->nxt_pin_page;
         i++;
     }
+    displayDirtyFLgFrameStat(&frameStat);
+    printf("\n printed ");
+   // return frameStat.frameDirtyFlg_arr;
     return dirtyFlag;
 }
 int *getFixCounts (BM_BufferPool *const bm){
@@ -291,10 +315,11 @@ int *getFixCounts (BM_BufferPool *const bm){
         pageFixCount[i]=tempPage->fixCount;
         tempPage=tempPage->nxt_pin_page;
     }
-    return pageFixCount;
+   // return pageFixCount;
+    return frameStat.framefixCount_arr;
 }
 int getNumReadIO (BM_BufferPool *const bm){
-    return numReadIO;
+    return frameStat.numReadIO;
 }
 int getNumWriteIO (BM_BufferPool *const bm){
     return numWriteIO;
@@ -503,12 +528,41 @@ void displayFrameStat(BM_FrameStat *stat){
     }
 }
 
-void updateFrameStat(PIN_PAGE *olDFrame,int newPageNum,BM_FrameStat *frameStat){
+BM_FrameStat* updateFrameStat(PIN_PAGE *olDFrame,BM_FrameStat *frameStat,int newPageNum){
     int oldPageNum=olDFrame->pageNum;
     int oldPageIndex=-1;
+    //displayFrameStat(frameStat);
     for(int i=0; i<bufferFrameSize; i++){
-        if(frameStat->frameContent_arr[i]=oldPageNum)
-            oldPageIndex=i;
+        if(frameStat->frameContent_arr[i]==oldPageNum) {
+            oldPageIndex = i;
+            break;
+        }
     }
     frameStat->frameContent_arr[oldPageIndex] = newPageNum;
+    frameStat->frameDirtyFlg_arr[oldPageIndex] = 0;
+    frameStat->framefixCount_arr[oldPageIndex] = 0;
+    return  frameStat;
+}
+
+void updatePageFrameStat(PIN_PAGE *frame,BM_FrameStat *frameStat,int flag,int value){
+    int pageNum=frame->pageNum;
+    int pageIndex=-1;
+    for(int i=0; i<bufferFrameSize; i++){
+        if(frameStat->frameContent_arr[i]==pageNum) {
+            pageIndex = i;
+            break;
+        }
+    }
+    frameStat->frameDirtyFlg_arr[pageIndex] = flag;
+    if(frameStat->framefixCount_arr[pageIndex] == 0 && value ==-1){
+        frameStat->framefixCount_arr[pageIndex] = 0;
+    }else {
+        frameStat->framefixCount_arr[pageIndex] = frameStat->framefixCount_arr[pageIndex] + value;
+    }
+}
+
+void displayDirtyFLgFrameStat(BM_FrameStat *stat){
+    for(int i=0; i<bufferFrameSize; i++){
+        printf("\n %d FixCount :: %d",stat->frameContent_arr[i],stat->frameDirtyFlg_arr[i]);
+    }
 }

@@ -53,7 +53,7 @@ typedef struct PIN_PAGE{
 typedef struct BM_FrameStat{
     int *frameContent_arr;
     int *framefixCount_arr;
-    boolean *frameDirtyFlg_arr;
+    int *frameDirtyFlg_arr;
     int numReadIO;
     int numWriteIO;
 }BM_FrameStat;
@@ -71,6 +71,7 @@ int isPagePresent(int);
 void shiftPageLookTbl();
 int getIndexPageByFIFO();
 int* returnPagePosition(PIN_PAGE *,int *);
+BM_FrameStat* updateFrameStat(PIN_PAGE *,BM_FrameStat *,int );
 RC displayBuffContent(PIN_PAGE *);
 
 #define MAKE_SM_FILE_HANDLE()				\
