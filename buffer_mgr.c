@@ -30,20 +30,22 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
 
     fh = MAKE_SM_FILE_HANDLE();
     bufferFrameSize = numPages;
+
     numReadIO = 0;
     numWriteIO =0;
 
-    //frameStat = malloc(sizeof(BM_FrameStat));
+
     frameStat.frameContent_arr = (int *)malloc(sizeof(int) * bm->numPages);
     frameStat.frameDirtyFlg_arr = (int *)malloc(sizeof(int) * bm->numPages);
     frameStat.framefixCount_arr = (int *)malloc(sizeof(int) * bm->numPages);
     frameStat.numReadIO = 0;
+    frameStat.numWriteIO =0;
+
     for(int i=0; i<numPages; i++){
         frameStat.frameContent_arr[i] = -1;
         frameStat.frameDirtyFlg_arr[i] = 0;
         frameStat.framefixCount_arr[i] = 0;
     }
-    displayFrameStat(&frameStat);
 
 
     bm->pageFile = pageFileName;
@@ -60,16 +62,15 @@ RC initBufferPool(BM_BufferPool *const bm, const char *const pageFileName,
     buffPageLookUpTbl=frameLookUpTbl;
 
 
-   // if(firstPage==NULL)
-        firstPage=NULL;
-        firstPage = createBufferOfSize(numPages,firstPage);
+
+    firstPage=NULL;
+    firstPage = createBufferOfSize(numPages,firstPage);
     if(firstPage!=NULL)
         printf("\n Buffer created successfully ");
 
 
     int rtnCod=openPageFile(pageFileName,fh);
-    printf(" \n returen code :: %d ",fh->totalNumPages);
-    return RC_OK;
+    return rtnCod;
 }
 RC shutdownBufferPool(BM_BufferPool *const bm){
     PIN_PAGE *tempPage;
@@ -77,7 +78,7 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
     int pageLoc[bufferFrameSize];
     returnPagePosition(firstPage,&pageLoc);
     buffPageLookUpTbl = &pageLoc;
-    printf("\n inside shutdown buffer");
+
     for(int i=0; i<bufferFrameSize; i++){
         if(pageLoc[i]!=-1){
             int indexFrame = isPagePresent(pageLoc[i]);
@@ -93,13 +94,14 @@ RC shutdownBufferPool(BM_BufferPool *const bm){
                     }
                     tempPage->isDirty=FALSE;
                     numWriteIO = numWriteIO + 1;
+                    frameStat.numWriteIO = frameStat.numWriteIO +1;
                 }
             }else{
                 return RC_BUFFER_IN_USE;
             }
         }
     }
-   // free(firstPage);
+    
     printf("shutdown success");
     return RC_OK;
 }
@@ -110,13 +112,13 @@ RC forceFlushPool(BM_BufferPool *const bm){
     returnPagePosition(firstPage,&pageLoc);
     buffPageLookUpTbl = &pageLoc;
     printf("\n inside shutdown buffer");
+
     for(int i=0; i<bufferFrameSize; i++){
         if(pageLoc[i]!=-1){
             int indexFrame = isPagePresent(pageLoc[i]);
             if(indexFrame==-1)
                 return RC_IVLD_PAGE_NUM;
             tempPage = getFrameFromLoc(firstPage,indexFrame);
-            printf("\n Page Num %d:: Fix count :: %d",tempPage->pageNum,tempPage->fixCount);
             if(tempPage->fixCount ==0){
                 if(tempPage->isDirty==TRUE){
                     ph = (SM_PageHandle)malloc(PAGE_SIZE);
@@ -126,12 +128,13 @@ RC forceFlushPool(BM_BufferPool *const bm){
                     }
                     tempPage->isDirty=FALSE;
                     updatePageFrameStat(tempPage,&frameStat,0,-1);
-                    printf("\n Wring page %d",tempPage->pageNum);
                 }
                 numWriteIO = numWriteIO + 1;
+                frameStat.numWriteIO = frameStat.numWriteIO +1;
             }
         }
     }
+
     printf("\n forceFlushPool success");
     return RC_OK;
 }
@@ -144,13 +147,15 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
     returnPagePosition(firstPage,&pageLoc);
     buffPageLookUpTbl = &pageLoc;
     int indexFrame = isPagePresent(page->pageNum);
+
     if(indexFrame==-1)
         return RC_IVLD_PAGE_NUM;
 
     tempPage = getFrameFromLoc(firstPage,indexFrame);
     tempPage->isDirty = TRUE;
     updatePageFrameStat(tempPage,&frameStat,1,0);
-    displayDirtyFLgFrameStat(&frameStat);
+
+
     return RC_OK;
 }
 RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
@@ -160,14 +165,14 @@ RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
     returnPagePosition(firstPage,&pageLoc);
     buffPageLookUpTbl = &pageLoc;
     int indexFrame = isPagePresent(page->pageNum);
+
     if(indexFrame==-1)
         return RC_IVLD_PAGE_NUM;
-    else
-        printf("\n before unpined %d",tempPage->fixCount);
-        tempPage = updateFixCountAtFrameLoc(firstPage,indexFrame,-1);
-        updatePageFrameStat(tempPage,&frameStat,tempPage->isDirty,-1);
-        page->data = tempPage->data;
-        printf("\n unpined success %d",tempPage->fixCount);
+
+    tempPage = updateFixCountAtFrameLoc(firstPage,indexFrame,-1);
+    updatePageFrameStat(tempPage,&frameStat,tempPage->isDirty,-1);
+    page->data = tempPage->data;
+
     return RC_OK;
 }
 RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
@@ -178,6 +183,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     returnPagePosition(firstPage,&pageLoc);
     buffPageLookUpTbl = &pageLoc;
     int indexFrame = isPagePresent(page->pageNum);
+
     if(indexFrame==-1)
         return RC_IVLD_PAGE_NUM;
 
@@ -196,6 +202,7 @@ RC forcePage (BM_BufferPool *const bm, BM_PageHandle *const page){
     }else{
         return RC_BUFFER_IN_USE;
     }
+
     printf("\n forcepage success");
     return RC_OK;
 }
@@ -205,38 +212,39 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
 
     PIN_PAGE *tempPage;
     ph = (SM_PageHandle)malloc(PAGE_SIZE);
-    int *newLookup;
     int pageLoc[bufferFrameSize];
-    newLookup = returnPagePosition(firstPage,&pageLoc);
+    returnPagePosition(firstPage,&pageLoc);
     buffPageLookUpTbl = &pageLoc;
     int noOfPageInBuff=0;
+
     for(int i=0; i<bufferFrameSize; i++){
         if(pageLoc[i]!= -1)
             noOfPageInBuff++;
     }
 
     int indexFrame = isPagePresent(pageNum);
+
     if(indexFrame != -1){
         printf("Page Hit");
         tempPage = updateFixCountAtFrameLoc(firstPage,indexFrame,1);
         page->data = tempPage->data;
         page->pageNum = pageNum;
-        int newVal=0;
 
         updatePageFrameStat(tempPage,&frameStat,tempPage->isDirty,1);
         if(bm->strategy==RS_LRU)
             firstPage = moveFrameCurtLocToEnd(firstPage,indexFrame);
         return RC_OK;
     }
+
     tempPage = getFrameFromLoc(firstPage,indexFrame);
     if(tempPage->fixCount > 0)
         firstPage=moveHeadToEnd(firstPage);
+
     indexFrame = getIndexPageByFIFO();
+
     if(indexFrame ==-1)
         return RC_UNKNOWN_ERROR;
     else{
-
-
 
         boolean isDirty = isPageDirty(firstPage,indexFrame);
         if(isDirty){
@@ -246,25 +254,25 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
             if(RC_OK != writeBlock(tempPage->pageNum,fh,ph)){
                 return RC_WRITE_FAILED;
             }
+            frameStat.numWriteIO = frameStat.numWriteIO +1;
         }
 
         ph = (SM_PageHandle)malloc(PAGE_SIZE);
         if (RC_OK != readBlock(pageNum, fh, ph)){
-            printf("\n page to be read %d ",pageNum);
-            printf("\n total no of pages %d",fh->totalNumPages);
             return RC_READ_FAILED;
         }
         tempPage = getFrameFromLoc(firstPage,indexFrame);
         updateFrameStat(tempPage,&frameStat,pageNum);
-       // displayFrameStat(&frameStat);
+
         tempPage->fixCount =1;
         tempPage->isDirty = FALSE;
-       // sprintf(ph, "%s-%i", "Page", pageNum);
+
         page->data =ph;
         page->pageNum = pageNum;
-       // sprintf(ph, "%s-%i", "Page", pageNum);
+
         buffPageLookUpTbl[indexFrame]=pageNum;
         updatePinPageAtLoc(firstPage,indexFrame,pageNum,ph);
+
         if(noOfPageInBuff>=3) {
             firstPage = moveHeadToEnd(firstPage);
             shiftPageLookTbl();
@@ -278,44 +286,23 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
 
 // Statistics Interface
 PageNumber *getFrameContents (BM_BufferPool *const bm){
-    int iterator = 0;
-    int *pageFrameLoc = (int *)malloc(sizeof(int) * bm->numPages);
-   // int pageFrameLoc[bufferFrameSize];
-    PIN_PAGE *tempPage = firstPage;
-    int i=0;
-    while(tempPage!=NULL){
-        pageFrameLoc[i]=tempPage->pageNum;
-        tempPage=tempPage->nxt_pin_page;
-        i++;
-    }
-    //return pageFrameLoc;
+
     return frameStat.frameContent_arr;
 }
 bool *getDirtyFlags (BM_BufferPool *const bm){
     bool *dirtyFlag = (bool*)malloc(sizeof(bool) * bm->numPages);
-    //bool dirtyFlag[bufferFrameSize];
+
     PIN_PAGE *tempPage = firstPage;
     int i=0;
     while(tempPage!=NULL){
-        //dirtyFlag[i]=tempPage->isDirty;
         dirtyFlag[i]=frameStat.frameDirtyFlg_arr[i];
         tempPage=tempPage->nxt_pin_page;
         i++;
     }
-    displayDirtyFLgFrameStat(&frameStat);
-    printf("\n printed ");
-   // return frameStat.frameDirtyFlg_arr;
+
     return dirtyFlag;
 }
 int *getFixCounts (BM_BufferPool *const bm){
-    PIN_PAGE *tempPage = firstPage;
-    int *pageFixCount = (int *)malloc(sizeof(int) * bm->numPages);
-    int i=0;
-    while(tempPage!=NULL){
-        pageFixCount[i]=tempPage->fixCount;
-        tempPage=tempPage->nxt_pin_page;
-    }
-   // return pageFixCount;
     return frameStat.framefixCount_arr;
 }
 int getNumReadIO (BM_BufferPool *const bm){
@@ -451,9 +438,7 @@ int getIndexPageByFIFO(){
 
 int isPagePresent(int pageNum){
     int frameIndex=-1;
-    /*for(int i=0; i<bufferFrameSize; i++){
-        printf(" \n buff %d",buffPageLookUpTbl[i]);
-    }*/
+
     for(int i=0; i <bufferFrameSize; i++){
         if(buffPageLookUpTbl[i]==pageNum){
             frameIndex = i;
@@ -531,7 +516,7 @@ void displayFrameStat(BM_FrameStat *stat){
 BM_FrameStat* updateFrameStat(PIN_PAGE *olDFrame,BM_FrameStat *frameStat,int newPageNum){
     int oldPageNum=olDFrame->pageNum;
     int oldPageIndex=-1;
-    //displayFrameStat(frameStat);
+
     for(int i=0; i<bufferFrameSize; i++){
         if(frameStat->frameContent_arr[i]==oldPageNum) {
             oldPageIndex = i;
