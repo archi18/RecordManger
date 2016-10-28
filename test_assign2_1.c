@@ -81,7 +81,7 @@ createDummyPages(BM_BufferPool *bm, int num)
     BM_PageHandle *h = MAKE_PAGE_HANDLE();
 
     CHECK(initBufferPool(bm, "testbuffer.bin", 3, RS_FIFO, NULL));
-    printf("hiii");
+
     for (i = 0; i < num; i++)
     {
         CHECK(pinPage(bm, h, i));
@@ -109,6 +109,7 @@ checkDummyPages(BM_BufferPool *bm, int num)
         CHECK(pinPage(bm, h, i));
 
         sprintf(expected, "%s-%i", "Page", h->pageNum);
+
         ASSERT_EQUALS_STRING(expected, h->data, "reading back dummy page content");
 
         CHECK(unpinPage(bm, h));
