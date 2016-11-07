@@ -92,7 +92,7 @@ RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
         return RC_FILE_HANDLE_NOT_INIT;
     if(pageNum > fHandle->totalNumPages)
         return RC_READ_NON_EXISTING_PAGE;
-    //memPage = (char*) malloc(sizeof(char)*PAGE_SIZE);
+
     fseek(sm_file,PAGE_SIZE * pageNum, SEEK_SET);
     size_t ret_Read = fread(memPage, PAGE_SIZE, sizeof(char),sm_file);
     if(ret_Read <= ZERO)
@@ -198,11 +198,7 @@ RC writeBlock(int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage) {
     if (pageNum < 0 || fHandle == NULL) {
         return RC_WRITE_FAILED;
     }
-   /* char *buff;
-    int shiftPageBlockSize = sizeof(char) * (PAGE_SIZE * (fHandle->totalNumPages - pageNum));
-    buff = calloc(PAGE_SIZE * (fHandle->totalNumPages - pageNum),sizeof(char));
-    fseek (sm_file, pageNum * PAGE_SIZE, SEEK_SET);
-    fread (buff, shiftPageBlockSize,1, sm_file);*/
+
     fseek (sm_file, PAGE_SIZE * pageNum, SEEK_SET);
     size_t  rate_out=fwrite (memPage, sizeof(char),PAGE_SIZE,sm_file);
 
