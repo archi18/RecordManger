@@ -161,6 +161,10 @@ RC markDirty (BM_BufferPool *const bm, BM_PageHandle *const page){
 }
 RC unpinPage (BM_BufferPool *const bm, BM_PageHandle *const page){
     PIN_PAGE *tempPage;
+    if(page->pageNum < 0){
+        printf(" \n page number null");
+        return RC_INVLD_PAGE_NUM;
+    }
 
     int pageLoc[bufferFrameSize];
     returnPagePosition(firstPage,&pageLoc);

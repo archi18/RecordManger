@@ -7,7 +7,6 @@
       <sourceFolder url="file://$MODULE_DIR$/dberror.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/buffer_mgr_stat.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/storage_mgr.c" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/record_mgr.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/expr.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test_expr.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/rm_serializer.c" isTestSource="false" />
@@ -19,6 +18,7 @@
       <sourceFolder url="file://$MODULE_DIR$/buffer_mgr.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/record_mgr.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/record_mgr.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dberror.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test_assign3_1.c" isTestSource="false" />
     </content>

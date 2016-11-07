@@ -18,19 +18,18 @@ int * getAtributesDtType(char *, int );
 int extractTypeLength(char *data);
 int * getAtributeSize(char *scmData, int numAtr);
 int * extractKeyDt(char *data,int keyNum);
+int * extractFirstFreePageSlot(char *);
+char * readFreePageSlotData(char *);
 
-
-typedef struct Table_info{
-    char *tbleName;
+typedef struct TableMgmt_info{
     int sizeOfRec;
     int totalRecordInTable;
-    int headerSize;
     int blkFctr;
-    RID *firstFreeLoc;
-    Schema *schema;
-}Table_info;
+    RID firstFreeLoc;
+    RM_TableData *rm_tbl_data;
+}TableMgmt_info;
 
-Table_info table_info;
+TableMgmt_info tblmgmt_info;
 SM_FileHandle fh;
 SM_PageHandle ph;
 
@@ -72,6 +71,10 @@ RC createTable (char *name, Schema *schema){
     }
     strcat(tableMetadata,"}");
 
+    tblmgmt_info.firstFreeLoc.page =1;
+    tblmgmt_info.firstFreeLoc.slot =0;
+
+    sprintf(tableMetadata+ strlen(tableMetadata),"$%d:%d$",tblmgmt_info.firstFreeLoc.page,tblmgmt_info.firstFreeLoc.slot);
     memmove(ph,tableMetadata,PAGE_SIZE);
 
     if (openPageFile(name, &fh) != RC_OK) {
@@ -102,7 +105,17 @@ RC openTable (RM_TableData *rel, char *name){
     }
 
     printf("\n pin page data %s",h->data);
+    printf("\n pin page number %d",h->pageNum);
+
     readSchemaFromFile(rel,h);
+
+    printf("\n Free pageSlot %d : %d",tblmgmt_info.firstFreeLoc.page,tblmgmt_info.firstFreeLoc.slot);
+
+    if(unpinPage(bm,h) != RC_OK){
+        RC_message = "Unpin page failed ";
+        return RC_UNPIN_PAGE_FAILED;
+    }
+
     return RC_OK;
 }
 
@@ -204,8 +217,8 @@ Schema *createSchema (int numAttr, char **attrNames, DataType *dataTypes, int *t
     schema->keySize = keySize;
     schema->keyAttrs = keys;
     int recordSize = getRecordSize(schema);
-    table_info.sizeOfRec = recordSize;
-    table_info.totalRecordInTable = 0;
+    tblmgmt_info.sizeOfRec = recordSize;
+    tblmgmt_info.totalRecordInTable = 0;
 
     return schema;
 }
@@ -241,7 +254,8 @@ void readSchemaFromFile(RM_TableData *rel, BM_PageHandle *h){
     char metadata[PAGE_SIZE];
     strcpy(metadata,h->data);
     printf("\nschema data : %s",metadata);
-    printf("\n read table name : %s",readSchemaName(&metadata));
+    char *schema_name=readSchemaName(&metadata);
+    printf("\n read table name : %s",schema_name);
 
     int totalAtribute = readTotalAttributes(&metadata);
     printf("\n tatal no of Attributes : %d",totalAtribute);
@@ -255,28 +269,64 @@ void readSchemaFromFile(RM_TableData *rel, BM_PageHandle *h){
     char *atrKeydt = readAttributeKeyData(&metadata);
     printf("\n  key attr data: %s",atrKeydt);
 
-    getAtrributesNames(atrMetadata,totalAtribute);
+    char *freeVacSlot = readFreePageSlotData(&metadata);
+    printf("\n Vacancy Data %s",freeVacSlot);
+
+
+ /*   getAtrributesNames(atrMetadata,totalAtribute);
     getAtributesDtType(atrMetadata,totalAtribute);
     getAtributeSize(atrMetadata,totalAtribute);
-    extractKeyDt(atrKeydt,totalKeyAtr);
+    extractKeyDt(atrKeydt,totalKeyAtr);*/
 
     char **names=getAtrributesNames(atrMetadata,totalAtribute);
-    int *dt =   getAtributesDtType(atrMetadata,totalAtribute);
+    DataType *dt =   getAtributesDtType(atrMetadata,totalAtribute);
     int *sizes = getAtributeSize(atrMetadata,totalAtribute);
     int *keys =   extractKeyDt(atrKeydt,totalKeyAtr);
-    printf(" value of dt %d",dt);
+    int *pageSolt = extractFirstFreePageSlot(freeVacSlot);
+
     int i;
-    char **cpNames = (char **) malloc(sizeof(char*) * 3);
-    DataType *cpDt = (DataType *) malloc(sizeof(DataType) * 3);
-    int *cpSizes = (int *) malloc(sizeof(int) * 3);
-    int *cpKeys = (int *) malloc(sizeof(int));
-/*
+    char **cpNames = (char **) malloc(sizeof(char*) * totalAtribute);
+    DataType *cpDt = (DataType *) malloc(sizeof(DataType) * totalAtribute);
+    int *cpSizes = (int *) malloc(sizeof(int) * totalAtribute);
+    int *cpKeys = (int *) malloc(sizeof(int)*totalKeyAtr);
+    char *cpSchemaName = (char *) malloc(sizeof(char)*20);
+
+    memset(cpSchemaName,'\0',sizeof(char)*20);
+
     for(int i = 0; i < totalAtribute; i++)
     {
-        //cpNames[i] = (char *) malloc(4);
-        //strcpy(cpNames[i], names[i]);
-        printf(" \n names %s",dt[i]);
-    }*/
+        cpNames[i] = (char *) malloc(sizeof(char) * 10);
+         strcpy(cpNames[i], names[i]);
+        printf(" \n atr : %s %d %d ",names[i],dt[i],sizes[i]);
+    }
+    for(int i=0; i<totalKeyAtr; i++){
+        printf(" \n keys %d",keys[i]);
+    }
+    memcpy(cpDt, dt, sizeof(DataType) * totalAtribute);
+    memcpy(cpSizes, sizes, sizeof(int) * totalAtribute);
+    memcpy(cpKeys, keys, sizeof(int) * totalKeyAtr);
+    memcpy(cpSchemaName,schema_name,strlen(schema_name));
+
+    free(names);
+    free(dt);
+    free(sizes);
+    free(keys);
+    free(schema_name);
+
+    Schema *schema = createSchema(totalAtribute, cpNames, cpDt, cpSizes, totalKeyAtr, cpKeys);
+    rel->schema=schema;
+    rel->name =cpSchemaName;
+
+    tblmgmt_info.rm_tbl_data = rel;
+    tblmgmt_info.sizeOfRec =  getRecordSize(rel->schema);
+    tblmgmt_info.blkFctr = PAGE_SIZE / tblmgmt_info.sizeOfRec;
+    tblmgmt_info.firstFreeLoc.page =pageSolt[0];
+    tblmgmt_info.firstFreeLoc.slot =pageSolt[1];
+
+    printf(" \n Record Size %d ",tblmgmt_info.sizeOfRec);
+    printf(" \n Blocking factor %d ",tblmgmt_info.blkFctr);
+
+   printf(" \n after schema creation %s",rel->name);
 }
 
 
@@ -365,6 +415,24 @@ char * readAttributeKeyData(char *scmData){
     return atrData;
 }
 
+char * readFreePageSlotData(char *scmData){
+    char *atrData = (char *) malloc(sizeof(char)*50);
+    memset(atrData,'\0',sizeof(char)*50);
+    int i=0;
+    while(scmData[i] != '$'){
+        i++;
+    }
+    i++;
+    int j=0;
+    for(j=0;scmData[i] != '$'; j++){
+        atrData[j] = scmData[i++];
+    }
+    atrData[j]='\0';
+    // printf(" Attribute data : %s ",atrData);
+
+    return atrData;
+}
+
 Schema * getAtrDetails(char *scmData, int numAtr, char *keydata, int numKeys){
     Schema *result;
     char *names[numAtr];
@@ -396,8 +464,8 @@ Schema * getAtrDetails(char *scmData, int numAtr, char *keydata, int numKeys){
 
 
 char ** getAtrributesNames(char *scmData, int numAtr){
-    char *attributesName[numAtr];
-
+    //char *attributesName[numAtr];
+    char ** attributesName = (char **) malloc(sizeof(char)*numAtr);
     for(int i=0; i<numAtr; i++){
         char *atrDt =getSingleAtrData(scmData,i);
       //  printf("\n signle data %s",atrDt);
@@ -413,25 +481,25 @@ char ** getAtrributesNames(char *scmData, int numAtr){
 }
 
 int * getAtributesDtType(char *scmData, int numAtr){
-    int dt_type[numAtr];
+    int *dt_type=(int *) malloc(sizeof(int) *numAtr);
 
     for(int i=0; i<numAtr; i++){
         char *atrDt =getSingleAtrData(scmData,i);
         dt_type[i]  = extractDataType(atrDt);
         printf("\n data type %d",dt_type[i]);
-
+        free(atrDt);
     }
     return dt_type;
 }
 
 int * getAtributeSize(char *scmData, int numAtr){
-    int dt_size[numAtr];
+    int *dt_size= (int *) malloc(sizeof(int) *numAtr);
 
     for(int i=0; i<numAtr; i++){
         char *atrDt =getSingleAtrData(scmData,i);
         dt_size[i]  = extractTypeLength(atrDt);
         printf("\n data size %d",dt_size[i]);
-
+        free(atrDt);
     }
 
     return dt_size;
@@ -504,7 +572,7 @@ int extractTypeLength(char *data){
 
 int * extractKeyDt(char *data,int keyNum){
     char *val = (char *) malloc(sizeof(int)*2);
-    int values[keyNum];
+    int * values=(int *) malloc(sizeof(int) *keyNum);
     memset(val,'\0',sizeof(int)*2);
     int i=0;
     int j=0;
@@ -527,3 +595,27 @@ int * extractKeyDt(char *data,int keyNum){
     return  values;
 }
 
+
+int * extractFirstFreePageSlot(char *data){
+    char *val = (char *) malloc(sizeof(int)*2);
+    int * values=(int *) malloc(sizeof(int) *2);
+    memset(val,'\0',sizeof(int)*2);
+    int i=0;
+    int j=0;
+    for(int k=0; data[k]!='\0'; k++){
+        if(data[k]==':' ){
+            values[j]=atoi(val);
+            memset(val,'\0',sizeof(int)*2);
+            printf("\n page value %d",values[j]);
+            i=0;
+            j++;
+
+        }else{
+            val[i++] = data[k];
+        }
+
+    }
+    values[1] =atoi(val);
+    printf("\n Slot %d",values[1]);
+    return  values;
+}
