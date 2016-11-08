@@ -241,8 +241,9 @@ RC createRecord (Record **record, Schema *schema){
     //printf(" \n record Size %d",tblmgmt_info.sizeOfRec);
     newRec->data = (char *)malloc(sizeof(char) * tblmgmt_info.sizeOfRec);
     memset(newRec->data,'\0',sizeof(char) * tblmgmt_info.sizeOfRec);
-    newRec->data[0]='0';
-   // newRec->data[1]='\0';
+    printf("\n Newly created record ");
+    printRecord(newRec->data, tblmgmt_info.sizeOfRec);
+
     newRec->id.page =-1;           //set to -1 bcz it has not inserted into table/page/slot
     newRec->id.page =-1;           //set to -1 bcz it has not inserted into table/page/slot
     printf(" \n data innewly created data %s",newRec->data);
@@ -257,8 +258,75 @@ RC freeRecord (Record *record){
 
     return RC_OK;
 }
-
+/*
+ *
+ * In case of error check  free(subString); try commenting it
+ *
+ *
+ * */
 RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
+    int offset = getAtrOffsetInRec(schema,attrNum);
+
+    printf("\n atrribute offset of %d = %d ",attrNum,offset);
+
+    Value *l_rec;
+    int int_atr;
+    float float_atr;
+    int atr_size =0;
+    char *subString ;
+    
+
+    switch (schema->dataTypes[attrNum]) {
+        case DT_INT :
+            atr_size = sizeof(int);
+            subString= malloc(atr_size+1);     // one extra byte to store '\0' char
+            memcpy(subString, record->data+offset, atr_size);
+            subString[atr_size]='\0';          // set last byet to '\0'
+            printf("\n  substring %s",subString);
+            int_atr =  atoi(subString);
+            printf("\n  int_atr : %d",int_atr);
+
+            MAKE_VALUE(*value, DT_INT, int_atr);
+            free(subString);
+            break;
+        case DT_STRING :
+            atr_size =sizeof(char)*schema->typeLength[attrNum];
+            subString= malloc(atr_size+1);    // one extra byte to store '\0' char
+            memcpy(subString, record->data+offset, atr_size);
+            subString[atr_size]='\0';       // set last byet to '\0'
+            printf("\n  substring %s",subString);
+
+            MAKE_STRING_VALUE(*value, subString);
+            free(subString);
+            break;
+        case DT_FLOAT :
+            atr_size = sizeof(float);
+            subString= malloc(atr_size+1);     // one extra byte to store '\0' char
+            memcpy(subString, record->data+offset, atr_size);
+            subString[atr_size]='\0';          // set last byet to '\0'
+            printf("\n  substring %s",subString);
+            float_atr =  atof(subString);
+            printf("\n  flt_atr : %f",float_atr);
+
+            MAKE_VALUE(*value, DT_FLOAT, float_atr);
+            free(subString);
+            break;
+        case DT_BOOL :
+            atr_size = sizeof(bool);
+            subString= malloc(atr_size+1);     // one extra byte to store '\0' char
+            memcpy(subString, record->data+offset, atr_size);
+            subString[atr_size]='\0';          // set last byet to '\0'
+            printf("\n  substring %s",subString);
+            int_atr =  atoi(subString);
+            printf("\n  int_atr : %d",int_atr);
+
+            MAKE_VALUE(*value, DT_BOOL, int_atr);
+            free(subString);
+            break;
+    }
+    // remember to return pointer of new value
+   // *value = l_rec;
+    return RC_OK;
 
     return RC_OK;
 }
@@ -274,27 +342,33 @@ RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
     printf("\n atrribute offset of %d = %d ",attrNum,offset);
     printf("\n old record value %s",record->data);
     //record->data = record->data +offset;
-    char array[5];
+    char intStr[sizeof(int)+1];
+    char intStrTemp[sizeof(int)+1];
     int remainder = 0,quotient = 0;
     int k = 0,j;
     bool q,r;
-    printf("\n size of boolean %d",sizeof(bool));
-    memset(array,'0',sizeof(char)*4);
+
+    memset(intStr,'0',sizeof(char)*4);
+    char *hexValue ="0001";
+    int number = (int)strtol(hexValue, NULL, 16);
+
        switch(schema->dataTypes[attrNum])
        {
-           case DT_INT:
-               //*(int *)record->data = value->v.intV;
+           case DT_INT: {
 
                quotient = value->v.intV;
                j = 3;
-               while(quotient > 0 && j >= 0 ){
+               while (quotient > 0 && j >= 0) {
                    remainder = quotient % 10;
                    quotient = quotient / 10;
-                   array[j] = array[j] + remainder;
+                   intStr[j] = intStr[j] + remainder;
+
                    j--;
                }
-               array[4] = '\0';
-              sprintf(record->data+offset,"%s",array);
+               intStr[4] = '\0';
+             //  printf("\n int to hex %x ", intStr);
+               sprintf(record->data + offset, "%s", intStr);
+           }
                break;
            case DT_STRING: {
                int strLength =schema->typeLength[attrNum];
@@ -316,11 +390,11 @@ RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
                while(q > 0 && j >= 0 ){
                    r = q % 10;
                    q = q / 10;
-                   array[j] = array[j] + r;
+                   intStr[j] = intStr[j] + r;
                    j--;
                }
-               array[2] = '\0';
-               sprintf(record->data + offset,"%s" ,array);
+               intStr[2] = '\0';
+               sprintf(record->data + offset,"%s" ,intStr);
                break;
        }
 
