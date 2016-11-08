@@ -139,6 +139,9 @@ int getNumTuples (RM_TableData *rel){
 // handling records in a table
 RC insertRecord (RM_TableData *rel, Record *record){
 
+    char *pageData;   //user for convinient to hangle page data , do not use malloc and free. its is pointer.
+    int recordSize = tblmgmt_info.sizeOfRec;
+
     return RC_OK;
 }
 
@@ -255,7 +258,7 @@ RC createRecord (Record **record, Schema *schema){
 }
 
 RC freeRecord (Record *record){
-
+    free(record);
     return RC_OK;
 }
 /*
@@ -772,4 +775,17 @@ void printRecord(char *record, int recLen){
     for(int i=0; i<recLen; i++){
         printf("%c",record[i]);
     }
+}
+
+/*
+ * Use to print print Record deatils to make sure integrity of information and persistancy data
+ *
+ * */
+void printTableInfoDetails(TableMgmt_info *tab_info){
+    printf(" \n Printing record details ");
+    printf(" \n table name [%s]",tab_info->rm_tbl_data->name);
+    printf(" \n Size of record [%d]",tab_info->sizeOfRec);
+    printf(" \n total Records in page (blkftr) [%d]",tab_info->blkFctr);
+    printf(" \n total Attributes in table [%d]",tab_info->rm_tbl_data->schema->numAttr);
+    printf(" \n next available page and slot [%d:%d]",tab_info->firstFreeLoc.page,tab_info->firstFreeLoc.slot);
 }
