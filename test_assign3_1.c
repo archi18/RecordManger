@@ -102,6 +102,7 @@ main (void)
 callOpenTable(char *name){
     RM_TableData *table = (RM_TableData *) malloc(sizeof(RM_TableData));
     openTable(table, name);
+    testRecord(table->schema, 10, "abc", 10);
 }
 
 // ************************************************************
@@ -697,17 +698,17 @@ testRecord(Schema *schema, int a, char *b, int c)
 
     TEST_CHECK(createRecord(&result, schema));
 
-    MAKE_VALUE(value, DT_INT, a);
+    MAKE_VALUE(value, DT_INT, 1);
     TEST_CHECK(setAttr(result, schema, 0, value));
     freeVal(value);
 
     MAKE_STRING_VALUE(value, b);
     TEST_CHECK(setAttr(result, schema, 1, value));
     freeVal(value);
-
+    /*
     MAKE_VALUE(value, DT_INT, c);
     TEST_CHECK(setAttr(result, schema, 2, value));
-    freeVal(value);
+    freeVal(value);*/
 
     return result;
 }

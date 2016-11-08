@@ -20,6 +20,7 @@ int * getAtributeSize(char *scmData, int numAtr);
 int * extractKeyDt(char *data,int keyNum);
 int * extractFirstFreePageSlot(char *);
 char * readFreePageSlotData(char *);
+int getAtrOffsetInRec(Schema *, int );
 
 typedef struct TableMgmt_info{
     int sizeOfRec;
@@ -194,7 +195,7 @@ int getRecordSize (Schema *schema){
                 recordSize = recordSize + sizeof(float);
                 break;
             case DT_BOOL:
-                recordSize = recordSize + sizeof(short);
+                recordSize = recordSize + sizeof(bool);
                 break;
         }
     }
@@ -232,6 +233,23 @@ RC freeSchema (Schema *schema){
 // dealing with records and attribute values
 RC createRecord (Record **record, Schema *schema){
 
+    Record *newRec = (Record *) malloc (sizeof(Record));
+    if(newRec == ((Record *)0)){
+        RC_message = "dynamic memory allocation failed | Record";
+        return RC_MELLOC_MEM_ALLOC_FAILED;
+    }
+    //printf(" \n record Size %d",tblmgmt_info.sizeOfRec);
+    newRec->data = (char *)malloc(sizeof(char) * tblmgmt_info.sizeOfRec);
+    memset(newRec->data,'\0',sizeof(char) * tblmgmt_info.sizeOfRec);
+    newRec->data[0]='0';
+   // newRec->data[1]='\0';
+    newRec->id.page =-1;           //set to -1 bcz it has not inserted into table/page/slot
+    newRec->id.page =-1;           //set to -1 bcz it has not inserted into table/page/slot
+    printf(" \n data innewly created data %s",newRec->data);
+
+
+    *record = newRec;
+
     return RC_OK;
 }
 
@@ -244,9 +262,71 @@ RC getAttr (Record *record, Schema *schema, int attrNum, Value **value){
 
     return RC_OK;
 }
-
+/*
+ *
+ * sets value for perticular atrribute
+ * note : check string value in case of error : last value to be set to '\0' or not
+ * */
 RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
 
+    int offset = getAtrOffsetInRec(schema,attrNum);
+
+    printf("\n atrribute offset of %d = %d ",attrNum,offset);
+    printf("\n old record value %s",record->data);
+    //record->data = record->data +offset;
+    char array[5];
+    int remainder = 0,quotient = 0;
+    int k = 0,j;
+    bool q,r;
+    printf("\n size of boolean %d",sizeof(bool));
+    memset(array,'0',sizeof(char)*4);
+       switch(schema->dataTypes[attrNum])
+       {
+           case DT_INT:
+               //*(int *)record->data = value->v.intV;
+
+               quotient = value->v.intV;
+               j = 3;
+               while(quotient > 0 && j >= 0 ){
+                   remainder = quotient % 10;
+                   quotient = quotient / 10;
+                   array[j] = array[j] + remainder;
+                   j--;
+               }
+               array[4] = '\0';
+              sprintf(record->data+offset,"%s",array);
+               break;
+           case DT_STRING: {
+               int strLength =schema->typeLength[attrNum];
+               sprintf(record->data + offset, "%s", value->v.stringV);
+               char buf[strLength];
+               memset(&buf,'\0',strLength);
+               for(int i=strLength-1, j =strlen(value->v.stringV)-1; i>=(strLength-strlen(value->v.stringV)); i--,j--){
+                    buf[i]=value->v.stringV[j];
+               }
+               printRecord(&buf,strLength);
+               break;
+           }
+           case DT_FLOAT:
+               sprintf(record->data + offset,"%f" ,value->v.floatV);
+               break;
+           case DT_BOOL:
+               q = value->v.boolV;
+               j = 1;
+               while(q > 0 && j >= 0 ){
+                   r = q % 10;
+                   q = q / 10;
+                   array[j] = array[j] + r;
+                   j--;
+               }
+               array[2] = '\0';
+               sprintf(record->data + offset,"%s" ,array);
+               break;
+       }
+
+    printf("\n New record value ");
+    printRecord(record->data,tblmgmt_info.sizeOfRec);
+    printf("\n Record Size %d",strlen(record->data));
     return RC_OK;
 }
 
@@ -272,11 +352,6 @@ void readSchemaFromFile(RM_TableData *rel, BM_PageHandle *h){
     char *freeVacSlot = readFreePageSlotData(&metadata);
     printf("\n Vacancy Data %s",freeVacSlot);
 
-
- /*   getAtrributesNames(atrMetadata,totalAtribute);
-    getAtributesDtType(atrMetadata,totalAtribute);
-    getAtributeSize(atrMetadata,totalAtribute);
-    extractKeyDt(atrKeydt,totalKeyAtr);*/
 
     char **names=getAtrributesNames(atrMetadata,totalAtribute);
     DataType *dt =   getAtributesDtType(atrMetadata,totalAtribute);
@@ -318,8 +393,8 @@ void readSchemaFromFile(RM_TableData *rel, BM_PageHandle *h){
     rel->name =cpSchemaName;
 
     tblmgmt_info.rm_tbl_data = rel;
-    tblmgmt_info.sizeOfRec =  getRecordSize(rel->schema);
-    tblmgmt_info.blkFctr = PAGE_SIZE / tblmgmt_info.sizeOfRec;
+    tblmgmt_info.sizeOfRec =  getRecordSize(rel->schema) + 1;   //
+    tblmgmt_info.blkFctr = (PAGE_SIZE / tblmgmt_info.sizeOfRec);
     tblmgmt_info.firstFreeLoc.page =pageSolt[0];
     tblmgmt_info.firstFreeLoc.slot =pageSolt[1];
 
@@ -431,35 +506,6 @@ char * readFreePageSlotData(char *scmData){
     // printf(" Attribute data : %s ",atrData);
 
     return atrData;
-}
-
-Schema * getAtrDetails(char *scmData, int numAtr, char *keydata, int numKeys){
-    Schema *result;
-    char *names[numAtr];
-    DataType dt[numAtr];
-    int sizes[numAtr];
-    int keys[numKeys];
-
-
-
-    int i;
-    char **cpNames = (char **) malloc(sizeof(char*) * 3);
-    DataType *cpDt = (DataType *) malloc(sizeof(DataType) * 3);
-    int *cpSizes = (int *) malloc(sizeof(int) * 3);
-    int *cpKeys = (int *) malloc(sizeof(int));
-
-    for(i = 0; i < numAtr; i++)
-    {
-        cpNames[i] = (char *) malloc(4);
-        strcpy(cpNames[i], names[i]);
-    }
-    memcpy(cpDt, dt, sizeof(DataType) * numAtr);
-    memcpy(cpSizes, sizes, sizeof(int) * numAtr);
-    memcpy(cpKeys, keys, sizeof(int));
-
-    result = createSchema(3, cpNames, cpDt, cpSizes, numKeys, cpKeys);
-
-    return  result;
 }
 
 
@@ -618,4 +664,38 @@ int * extractFirstFreePageSlot(char *data){
     values[1] =atoi(val);
     printf("\n Slot %d",values[1]);
     return  values;
+}
+
+/*
+ *   returns offset/string posing of perticular attribute
+ *   atrnum is offset we are seeking for
+ */
+int getAtrOffsetInRec(Schema *schema, int atrnum){
+    int offset=0;
+
+    for(int pos=0; pos<atrnum; pos++){
+        switch(schema->dataTypes[pos]){
+            case DT_INT:
+                    offset = offset + sizeof(int);
+                break;
+            case DT_STRING:
+                   offset = offset + (sizeof(char) *  schema->typeLength[pos]);
+                break;
+            case DT_FLOAT:
+                   offset = offset + sizeof(float);
+                break;
+            case DT_BOOL:
+                  offset = offset  + sizeof(bool);
+                break;
+        }
+    }
+
+    return offset;
+}
+
+
+void printRecord(char *record, int recLen){
+    for(int i=0; i<recLen; i++){
+        printf("%c",record[i]);
+    }
 }

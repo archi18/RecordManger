@@ -13,11 +13,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e2c9f6cb-d3be-48d5-81f7-20f09a90c43d" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/assign2.iml" afterPath="$PROJECT_DIR$/.idea/assign2.iml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/buffer_mgr.c" afterPath="$PROJECT_DIR$/buffer_mgr.c" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dberror.h" afterPath="$PROJECT_DIR$/dberror.h" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/record_mgr.c" afterPath="$PROJECT_DIR$/record_mgr.c" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test_assign3_1.c" afterPath="$PROJECT_DIR$/test_assign3_1.c" />
     </list>
     <ignored path="assign2.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -40,8 +38,8 @@
       <file leaf-file-name="test_assign3_1.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test_assign3_1.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="465">
-              <caret line="135" column="6" selection-start-line="135" selection-start-column="6" selection-end-line="135" selection-end-column="6" />
+            <state relative-caret-position="426">
+              <caret line="691" column="0" selection-start-line="691" selection-start-column="0" selection-end-line="691" selection-end-column="0" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -52,7 +50,7 @@
       <file leaf-file-name="tables.h" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tables.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="226">
+            <state relative-caret-position="210">
               <caret line="32" column="2" selection-start-line="32" selection-start-column="2" selection-end-line="32" selection-end-column="2" />
               <folding />
             </state>
@@ -62,8 +60,8 @@
       <file leaf-file-name="record_mgr.c" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/record_mgr.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="979">
-              <caret line="194" column="12" selection-start-line="194" selection-start-column="12" selection-end-line="194" selection-end-column="12" />
+            <state relative-caret-position="544">
+              <caret line="321" column="22" selection-start-line="321" selection-start-column="22" selection-end-line="321" selection-end-column="22" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -74,7 +72,7 @@
       <file leaf-file-name="buffer_mgr.h" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/buffer_mgr.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="181">
+            <state relative-caret-position="495">
               <caret line="33" column="2" selection-start-line="33" selection-start-column="2" selection-end-line="33" selection-end-column="2" />
               <folding />
             </state>
@@ -84,7 +82,7 @@
       <file leaf-file-name="buffer_mgr.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/buffer_mgr.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="189">
+            <state relative-caret-position="2445">
               <caret line="163" column="24" selection-start-line="163" selection-start-column="24" selection-end-line="163" selection-end-column="24" />
               <folding />
             </state>
@@ -115,9 +113,9 @@
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/test_expr.c" />
         <option value="$PROJECT_DIR$/record_mgr.c.c" />
-        <option value="$PROJECT_DIR$/test_assign3_1.c" />
         <option value="$PROJECT_DIR$/dberror.h" />
         <option value="$PROJECT_DIR$/buffer_mgr.c" />
+        <option value="$PROJECT_DIR$/test_assign3_1.c" />
         <option value="$PROJECT_DIR$/record_mgr.c" />
       </list>
     </option>
@@ -419,7 +417,8 @@
       <workItem from="1478283736034" duration="1456000" />
       <workItem from="1478368325986" duration="8957000" />
       <workItem from="1478456897950" duration="32518000" />
-      <workItem from="1478537216909" duration="12922000" />
+      <workItem from="1478537216909" duration="13487000" />
+      <workItem from="1478576732698" duration="15904000" />
     </task>
     <task id="LOCAL-00001" summary="Second Commit">
       <created>1477549593740</created>
@@ -432,7 +431,7 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="179618000" />
+    <option name="totallyTimeSpent" value="196087000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="63" y="24" width="1857" height="1056" extended-state="6" />
@@ -476,7 +475,24 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="57" />
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/record_mgr.c</url>
+          <line>282</line>
+          <option name="timeStamp" value="57" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/test_assign3_1.c</url>
+          <line>83</line>
+          <option name="timeStamp" value="58" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/record_mgr.c</url>
+          <line>235</line>
+          <option name="timeStamp" value="60" />
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="61" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="CMakeRunConfiguration">
@@ -764,8 +780,16 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/buffer_mgr.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="181">
+        <state relative-caret-position="495">
           <caret line="33" column="2" selection-start-line="33" selection-start-column="2" selection-end-line="33" selection-end-column="2" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/buffer_mgr.c">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2445">
+          <caret line="163" column="24" selection-start-line="163" selection-start-column="24" selection-end-line="163" selection-end-column="24" />
           <folding />
         </state>
       </provider>
@@ -778,36 +802,28 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/buffer_mgr.c">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="189">
-          <caret line="163" column="24" selection-start-line="163" selection-start-column="24" selection-end-line="163" selection-end-column="24" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tables.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="226">
-          <caret line="32" column="2" selection-start-line="32" selection-start-column="2" selection-end-line="32" selection-end-column="2" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test_assign3_1.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="465">
-          <caret line="135" column="6" selection-start-line="135" selection-start-column="6" selection-end-line="135" selection-end-column="6" />
+        <state relative-caret-position="426">
+          <caret line="691" column="0" selection-start-line="691" selection-start-column="0" selection-end-line="691" selection-end-column="0" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/tables.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="210">
+          <caret line="32" column="2" selection-start-line="32" selection-start-column="2" selection-end-line="32" selection-end-column="2" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/record_mgr.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="979">
-          <caret line="194" column="12" selection-start-line="194" selection-start-column="12" selection-end-line="194" selection-end-column="12" />
+        <state relative-caret-position="544">
+          <caret line="321" column="22" selection-start-line="321" selection-start-column="22" selection-end-line="321" selection-end-column="22" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
