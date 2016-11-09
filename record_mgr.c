@@ -452,35 +452,60 @@ RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond){
 }
 
 RC next (RM_ScanHandle *scan, Record *record){
-    if(tblmgmt_info.totalRecordInTable < 1)
+    if(tblmgmt_info.totalRecordInTable < 1 || rmScanMgmt.count==tblmgmt_info.totalRecordInTable)
         return  RC_RM_NO_MORE_TUPLES;
 
     int blockfactor = tblmgmt_info.blkFctr;
     int totalTuple = tblmgmt_info.totalRecordInTable;
-
+    BM_PageHandle *page = &tblmgmt_info.pageHandle;
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
+    int curTotalRecScan = rmScanMgmt.count; // scanning start from 0 count to total no of records
+    int curPageScan = rmScanMgmt.recID.page;  // scanning will always start from page 1 till record from last page enountered
+    int curSlotScan = rmScanMgmt.recID.slot;  //  scanning will always start from slot 1 till record enountered
+    Value *queryExpResult = (Value *) malloc(sizeof(Value));
+    rmScanMgmt.count = rmScanMgmt.count +1 ;
     printf("\n In Next totalTuple = %d",totalTuple);
     printf("\n In current Count = %d",rmScanMgmt.count);
 
-    if(rmScanMgmt.count<totalTuple){
+    while(curTotalRecScan<totalTuple){
 
-       if(rmScanMgmt.recID.slot ==(blockfactor-1)){
-            rmScanMgmt.recID.page++;
-            rmScanMgmt.recID.slot++;
+        rmScanMgmt.recID.page= curPageScan;
+        rmScanMgmt.recID.slot= curSlotScan;
+
+       if(getRecord(scan->rel,rmScanMgmt.recID,record) != RC_OK){
+            RC_message="Record reading failed";
+       }
+        curTotalRecScan = curTotalRecScan+1;   // increment counter by 1
+
+        if (rmScanMgmt.cond != NULL){
+            evalExpr(record, (scan->rel)->schema, rmScanMgmt.cond, &queryExpResult);
+            if(queryExpResult->v.boolV ==1){
+                record->id.page=curPageScan;
+                record->id.slot=curSlotScan;
+                if(curSlotScan ==(blockfactor-1)){
+                    curPageScan =curPageScan +1  ;
+                    curSlotScan = 0;
+                }else{
+                    curSlotScan = curSlotScan +1;
+                }
+                rmScanMgmt.recID.page= curPageScan;
+                rmScanMgmt.recID.slot= curSlotScan;
+                return RC_OK;
+            }
+        }/*else{
+            //queryExpResult->v.boolV == TRUE; // when no condition return all records
+        }*/
+        if(curSlotScan ==(blockfactor-1)){
+            curPageScan =curPageScan +1  ;
+            curSlotScan = 0;
         }else{
-           rmScanMgmt.recID.slot++;
+            curSlotScan = curSlotScan +1;
         }
-
-        //record->id.slot =rmScanMgmt.count;
-       // rmScanMgmt.recID.slot=rmScanMgmt.count;
-        getRecord(scan->rel,rmScanMgmt.recID,record);
-        rmScanMgmt.count++;
-
-
-    }else{
-        return  RC_RM_NO_MORE_TUPLES;
     }
+       queryExpResult->v.boolV == TRUE;
 
-    return RC_OK;
+        return  RC_RM_NO_MORE_TUPLES;
+
 }
 /***
  *

@@ -101,6 +101,7 @@ main (void)
     testUpdateTable();
     testScans();
     testScansTwo();
+    testMultipleScans();
 
     printf("\n -------------success-------------");
     return 0;
@@ -283,6 +284,7 @@ testMultipleScans(void)
     if ((rc2 = next(sc2, r)) == RC_OK)
         scanTwo++;
     i = 0;
+
     while((rc = next(sc1, r)) == RC_OK)
     {
         scanOne++;
@@ -294,12 +296,16 @@ testMultipleScans(void)
     while((rc2 = next(sc2, r)) == RC_OK)
         scanTwo++;
 
+
     ASSERT_TRUE(scanOne == scanTwo, "scans returned same number of tuples");
     if (rc != RC_RM_NO_MORE_TUPLES)
         TEST_CHECK(rc);
     TEST_CHECK(closeScan(sc1));
     TEST_CHECK(closeScan(sc2));
-
+    {
+        printf("\n exiting---->");
+        return;
+    }
     TEST_CHECK(closeTable(table));
     TEST_CHECK(deleteTable("test_table_r"));
     TEST_CHECK(shutdownRecordManager());
@@ -625,10 +631,7 @@ void testScansTwo (void)
     {
         ASSERT_EQUALS_RECORDS(fromTestRecord(schema, inserts[1]), r, schema, "compare records");
     }
-    {
-        printf("\n exiting---->");
-        return;
-    }
+
     if (rc != RC_RM_NO_MORE_TUPLES)
         TEST_CHECK(rc);
     TEST_CHECK(closeScan(sc));
@@ -644,6 +647,7 @@ void testScansTwo (void)
         ASSERT_EQUALS_RECORDS(fromTestRecord(schema, inserts[5]), r, schema, "compare records");
         serializeRecord(r, schema);
     }
+
     if (rc != RC_RM_NO_MORE_TUPLES)
         TEST_CHECK(rc);
     TEST_CHECK(closeScan(sc));
@@ -663,6 +667,8 @@ void testScansTwo (void)
                 foundScan[i] = TRUE;
         }
     }
+
+
     if (rc != RC_RM_NO_MORE_TUPLES)
         TEST_CHECK(rc);
     TEST_CHECK(closeScan(sc));
@@ -681,6 +687,7 @@ void testScansTwo (void)
     free(sc);
     freeExpr(sel);
     TEST_DONE();
+
 }
 
 
