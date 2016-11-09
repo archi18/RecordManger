@@ -188,7 +188,7 @@ RC closeTable (RM_TableData *rel){
 }
 
 RC deleteTable (char *name){
-
+    
     return RC_OK;
 }
 
@@ -274,6 +274,36 @@ RC deleteRecord (RM_TableData *rel, RID id){
 }
 
 RC updateRecord (RM_TableData *rel, Record *record){
+    int recordSize = tblmgmt_info.sizeOfRec;
+    int recPageNum = record->id.page;  // record will be searched at this page number
+    int recSlotNum = record->id.slot;  // record will be searched at this slot
+    int blockfactor = tblmgmt_info.blkFctr;
+    BM_PageHandle *page = &tblmgmt_info.pageHandle;
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
+
+    printf("Looking for record to Update at page [%d] at slot [%d] ",recPageNum,recSlotNum);
+
+    if(pinPage(bm,page,recPageNum) != RC_OK){
+        RC_message = "Pin page failed  ";
+        return RC_PIN_PAGE_FAILED;
+    }
+    int recordOffet = recSlotNum * recordSize;
+
+    printf("\n Old record data %s",page->data);
+    printf("\n new data to be updated %s ",record->data);
+
+    memcpy(page->data+recordOffet, record->data, recordSize-1);  // recordSize-1 bacause last value in record is $. which is set by us
+
+    printf("\n after updating  %s ",page->data);
+    if( markDirty(bm,page)!=RC_OK){
+        RC_message = "Page Mark Dirty Failed";
+        return RC_MARK_DIRTY_FAILED;
+    }
+
+    if(  unpinPage(bm,page)!=RC_OK){
+        RC_message = "Unpin Page failed Failed";
+        return RC_UNPIN_PAGE_FAILED;
+    }
 
     return RC_OK;
 }
@@ -288,10 +318,10 @@ RC updateRecord (RM_TableData *rel, Record *record){
  */
 RC getRecord (RM_TableData *rel, RID id, Record *record){
 
-    char *pageData;   //user for convinient to hangle page data , do not use malloc and free. its is pointer.
+
     int recordSize = tblmgmt_info.sizeOfRec;
-    int recPageNum = record->id.page;  // record will be searched at this page number
-    int recSlotNum = record->id.slot;  // record will be searched at this slot
+    int recPageNum = id.page;  // record will be searched at this page number
+    int recSlotNum = id.slot;  // record will be searched at this slot
     int blockfactor = tblmgmt_info.blkFctr;
     BM_PageHandle *page = &tblmgmt_info.pageHandle;
     BM_BufferPool *bm = &tblmgmt_info.bufferPool;
@@ -304,17 +334,19 @@ RC getRecord (RM_TableData *rel, RID id, Record *record){
     }
 
     int recordOffet = recSlotNum * recordSize;  // this will give starting point of record. remember last value in record is '$' replce it wil
-    memcpy(record->data, page->data, recordSize); // case of error check boundry condition also check for reccord->data size
-
+    memcpy(record->data, page->data+recordOffet, recordSize); // case of error check boundry condition also check for reccord->data size
+    record->data[recordSize-1]='\0';
     printf("\n Record readed from file %s",record->data);
+    record->id.page = recPageNum;
+    record->id.slot = recSlotNum;
 
-    record->data[recordSize-1]='\0'; // case of error check boundry condition
+     // case of error check boundry condition
 
     if(  unpinPage(bm,page)!=RC_OK){
         RC_message = "Unpin Page failed Failed";
         return RC_UNPIN_PAGE_FAILED;
     }
-    
+
     return RC_OK;
 }
 

@@ -435,24 +435,28 @@ testInsertManyRecords(void)
     TEST_CHECK(closeTable(table));
 
     TEST_CHECK(openTable(table, "test_table_t"));
-    {
-        printf("\n exiting---->");
-        return;
-    }
-    // retrieve records from the table and compare to expected final stage
+
     for(i = 0; i < numInserts; i++)
     {
         RID rid = rids[i];
         TEST_CHECK(getRecord(table, rid, r));
+
         ASSERT_EQUALS_RECORDS(fromTestRecord(schema, realInserts[i]), r, schema, "compare records");
+
     }
+
+
 
     r = fromTestRecord(schema, updates[0]);
     r->id = rids[randomRec];
     TEST_CHECK(updateRecord(table,r));
+
     TEST_CHECK(getRecord(table, rids[randomRec], r));
     ASSERT_EQUALS_RECORDS(fromTestRecord(schema, updates[0]), r, schema, "compare records");
-
+    {
+        printf("\n exiting---->");
+        return;
+    }
     TEST_CHECK(closeTable(table));
     TEST_CHECK(deleteTable("test_table_t"));
     TEST_CHECK(shutdownRecordManager());
