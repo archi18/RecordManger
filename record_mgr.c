@@ -503,7 +503,9 @@ RC next (RM_ScanHandle *scan, Record *record){
         }
     }
        queryExpResult->v.boolV == TRUE;
-
+    rmScanMgmt.recID.page=1; // records starts from page 1
+    rmScanMgmt.recID.slot=0; // slot starts from 0
+    rmScanMgmt.count = 0;
         return  RC_RM_NO_MORE_TUPLES;
 
 }

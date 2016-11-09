@@ -302,17 +302,14 @@ testMultipleScans(void)
         TEST_CHECK(rc);
     TEST_CHECK(closeScan(sc1));
     TEST_CHECK(closeScan(sc2));
-    {
-        printf("\n exiting---->");
-        return;
-    }
+
     TEST_CHECK(closeTable(table));
     TEST_CHECK(deleteTable("test_table_r"));
     TEST_CHECK(shutdownRecordManager());
 
     free(rids);
     free(table);
-    TEST_DONE();
+
 }
 
 void
