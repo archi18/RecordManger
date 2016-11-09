@@ -99,6 +99,8 @@ main (void)
     testRecords();
     testCreateTableAndInsert();
     testUpdateTable();
+    testScans();
+    testScansTwo();
 
     printf("\n -------------success-------------");
     return 0;
@@ -386,16 +388,14 @@ testUpdateTable (void)
         TEST_CHECK(getRecord(table, rid, r));
         ASSERT_EQUALS_RECORDS(fromTestRecord(schema, finalR[i]), r, schema, "compare records");
     }
-    {
-        printf("\n exiting---->");
-        return;
-    }
+
     TEST_CHECK(closeTable(table));
     TEST_CHECK(deleteTable("test_table_r"));
     TEST_CHECK(shutdownRecordManager());
 
     free(table);
     TEST_DONE();
+
 }
 
 void
@@ -529,6 +529,8 @@ void testScans (void)
     MAKE_BINOP_EXPR(sel, left, right, OP_COMP_EQUAL);
 
     TEST_CHECK(startScan(table, sc, sel));
+
+
     while((rc = next(sc, r)) == RC_OK)
     {
         for(i = 0; i < scanSizeOne; i++)
@@ -537,8 +539,10 @@ void testScans (void)
                 foundScan[i] = TRUE;
         }
     }
+
     if (rc != RC_RM_NO_MORE_TUPLES)
         TEST_CHECK(rc);
+
     TEST_CHECK(closeScan(sc));
     for(i = 0; i < scanSizeOne; i++)
         ASSERT_TRUE(foundScan[i], "check for scan result");
@@ -552,6 +556,7 @@ void testScans (void)
     free(sc);
     freeExpr(sel);
     TEST_DONE();
+
 }
 
 
@@ -615,9 +620,14 @@ void testScansTwo (void)
     MAKE_BINOP_EXPR(sel, left, right, OP_COMP_EQUAL);
     createRecord(&r, schema);
     TEST_CHECK(startScan(table, sc, sel));
+
     while((rc = next(sc, r)) == RC_OK)
     {
         ASSERT_EQUALS_RECORDS(fromTestRecord(schema, inserts[1]), r, schema, "compare records");
+    }
+    {
+        printf("\n exiting---->");
+        return;
     }
     if (rc != RC_RM_NO_MORE_TUPLES)
         TEST_CHECK(rc);

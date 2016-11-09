@@ -32,7 +32,18 @@ typedef struct TableMgmt_info{
     BM_BufferPool bufferPool;
 }TableMgmt_info;
 
+typedef struct RM_SCAN_MGMT{
+    RID recID;
+    Expr *cond;
+    int count;  // no of records scaned
+    RM_TableData *rm_tbl_data;
+    BM_PageHandle rm_pageHandle;
+    BM_BufferPool rm_bufferPool;
+}RM_SCAN_MGMT;
+
+
 TableMgmt_info tblmgmt_info;
+RM_SCAN_MGMT rmScanMgmt;
 SM_FileHandle fh;
 SM_PageHandle ph;
 
@@ -384,7 +395,7 @@ RC getRecord (RM_TableData *rel, RID id, Record *record){
     BM_PageHandle *page = &tblmgmt_info.pageHandle;
     BM_BufferPool *bm = &tblmgmt_info.bufferPool;
 
-    printf("Looking for record at page [%] at slot [%d] ",recPageNum,recSlotNum);
+    printf("Looking for record at page [%d] at slot [%d] ",recPageNum,recSlotNum);
 
     if(pinPage(bm,page,recPageNum) != RC_OK){
         RC_message = "Pin page failed  ";
@@ -410,12 +421,64 @@ RC getRecord (RM_TableData *rel, RID id, Record *record){
 
 
 // scans
+/***
+ * Note in case check table open or not add code to check table open or not
+ * also  check cond scan->mgmtData = &rmScanMgmt;
+ * @param rel
+ * @param scan
+ * @param cond
+ * @return
+ */
 RC startScan (RM_TableData *rel, RM_ScanHandle *scan, Expr *cond){
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
+
+    //Check that table is open and if not open it
+    /*if(openTable(rel, rel->name) != RC_OK) {
+        RC_message = "Table Can not be open";
+        return RC_OPEN_TABLE_FAILED;
+    }*/
+    printf("\n In Start Scan calling print table info ");
+    printTableInfoDetails(&tblmgmt_info);
+
+    scan->rel = rel;
+    rmScanMgmt.cond=cond;
+    rmScanMgmt.recID.page=1; // records starts from page 1
+    rmScanMgmt.recID.slot=0; // slot starts from 0
+    rmScanMgmt.count = 0;
+
+    scan->mgmtData = &rmScanMgmt;
 
     return RC_OK;
 }
 
 RC next (RM_ScanHandle *scan, Record *record){
+    if(tblmgmt_info.totalRecordInTable < 1)
+        return  RC_RM_NO_MORE_TUPLES;
+
+    int blockfactor = tblmgmt_info.blkFctr;
+    int totalTuple = tblmgmt_info.totalRecordInTable;
+
+    printf("\n In Next totalTuple = %d",totalTuple);
+    printf("\n In current Count = %d",rmScanMgmt.count);
+
+    if(rmScanMgmt.count<totalTuple){
+
+       if(rmScanMgmt.recID.slot ==(blockfactor-1)){
+            rmScanMgmt.recID.page++;
+            rmScanMgmt.recID.slot++;
+        }else{
+           rmScanMgmt.recID.slot++;
+        }
+
+        //record->id.slot =rmScanMgmt.count;
+       // rmScanMgmt.recID.slot=rmScanMgmt.count;
+        getRecord(scan->rel,rmScanMgmt.recID,record);
+        rmScanMgmt.count++;
+
+
+    }else{
+        return  RC_RM_NO_MORE_TUPLES;
+    }
 
     return RC_OK;
 }
@@ -729,7 +792,7 @@ void readSchemaFromFile(RM_TableData *rel, BM_PageHandle *h){
     tblmgmt_info.blkFctr = (PAGE_SIZE / tblmgmt_info.sizeOfRec);
     tblmgmt_info.firstFreeLoc.page =pageSolt[0];
     tblmgmt_info.firstFreeLoc.slot =pageSolt[1];
-    tblmgmt_info.totalRecordInTable = 0;
+    tblmgmt_info.totalRecordInTable = totaltuples;
     printf(" \n Record Size %d ",tblmgmt_info.sizeOfRec);
     printf(" \n Blocking factor %d ",tblmgmt_info.blkFctr);
 
@@ -1066,6 +1129,7 @@ void printTableInfoDetails(TableMgmt_info *tab_info){
     printf(" \n Size of record [%d]",tab_info->sizeOfRec);
     printf(" \n total Records in page (blkftr) [%d]",tab_info->blkFctr);
     printf(" \n total Attributes in table [%d]",tab_info->rm_tbl_data->schema->numAttr);
+    printf(" \n total Records in table [%d]",tab_info->totalRecordInTable);
     printf(" \n next available page and slot [%d:%d]",tab_info->firstFreeLoc.page,tab_info->firstFreeLoc.slot);
 }
 
