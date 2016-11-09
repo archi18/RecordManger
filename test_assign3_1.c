@@ -98,6 +98,7 @@ main (void)
     testInsertManyRecords();
     testRecords();
     testCreateTableAndInsert();
+    testUpdateTable();
 
     printf("\n -------------success-------------");
     return 0;
@@ -227,10 +228,7 @@ testCreateTableAndInsert (void)
     free(table);
     TEST_DONE();
 
-    {
-        printf("\n exiting---->");
-        return;
-    }
+
 }
 
 void
@@ -388,7 +386,10 @@ testUpdateTable (void)
         TEST_CHECK(getRecord(table, rid, r));
         ASSERT_EQUALS_RECORDS(fromTestRecord(schema, finalR[i]), r, schema, "compare records");
     }
-
+    {
+        printf("\n exiting---->");
+        return;
+    }
     TEST_CHECK(closeTable(table));
     TEST_CHECK(deleteTable("test_table_r"));
     TEST_CHECK(shutdownRecordManager());

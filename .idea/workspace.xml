@@ -13,7 +13,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e2c9f6cb-d3be-48d5-81f7-20f09a90c43d" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dberror.h" afterPath="$PROJECT_DIR$/dberror.h" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/record_mgr.c" afterPath="$PROJECT_DIR$/record_mgr.c" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/test_assign3_1.c" afterPath="$PROJECT_DIR$/test_assign3_1.c" />
     </list>
@@ -38,8 +38,8 @@
       <file leaf-file-name="test_assign3_1.c" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/test_assign3_1.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="303">
-              <caret line="232" column="5" selection-start-line="232" selection-start-column="5" selection-end-line="232" selection-end-column="5" />
+            <state relative-caret-position="801">
+              <caret line="391" column="5" selection-start-line="391" selection-start-column="5" selection-end-line="391" selection-end-column="5" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -60,8 +60,8 @@
       <file leaf-file-name="record_mgr.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/record_mgr.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="319">
-              <caret line="305" column="24" selection-start-line="305" selection-start-column="24" selection-end-line="305" selection-end-column="24" />
+            <state relative-caret-position="-44">
+              <caret line="319" column="130" selection-start-line="319" selection-start-column="130" selection-end-line="319" selection-end-column="130" />
               <folding>
                 <element signature="e#0#19#0" expanded="true" />
               </folding>
@@ -434,7 +434,7 @@
       <workItem from="1478456897950" duration="32518000" />
       <workItem from="1478537216909" duration="13487000" />
       <workItem from="1478576732698" duration="16044000" />
-      <workItem from="1478628699943" duration="36078000" />
+      <workItem from="1478628699943" duration="37347000" />
     </task>
     <task id="LOCAL-00001" summary="Second Commit">
       <created>1477549593740</created>
@@ -447,7 +447,7 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="232305000" />
+    <option name="totallyTimeSpent" value="233574000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="63" y="24" width="1857" height="1056" extended-state="6" />
@@ -820,8 +820,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/record_mgr.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="319">
-          <caret line="305" column="24" selection-start-line="305" selection-start-column="24" selection-end-line="305" selection-end-column="24" />
+        <state relative-caret-position="-44">
+          <caret line="319" column="130" selection-start-line="319" selection-start-column="130" selection-end-line="319" selection-end-column="130" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>
@@ -830,8 +830,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/test_assign3_1.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="303">
-          <caret line="232" column="5" selection-start-line="232" selection-start-column="5" selection-end-line="232" selection-end-column="5" />
+        <state relative-caret-position="801">
+          <caret line="391" column="5" selection-start-line="391" selection-start-column="5" selection-end-line="391" selection-end-column="5" />
           <folding>
             <element signature="e#0#19#0" expanded="true" />
           </folding>

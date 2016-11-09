@@ -297,6 +297,36 @@ RC insertRecord (RM_TableData *rel, Record *record){
 }
 
 RC deleteRecord (RM_TableData *rel, RID id){
+    int recordSize = tblmgmt_info.sizeOfRec;
+    int recPageNum = id.page;  // record will be searched at this page number
+    int recSlotNum = id.slot;  // record will be searched at this slot
+    int blockfactor = tblmgmt_info.blkFctr;
+    BM_PageHandle *page = &tblmgmt_info.pageHandle;
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
+    printf("Looking for record to Delete at page [%d] at slot [%d] ",recPageNum,recSlotNum);
+
+    if(pinPage(bm,page,recPageNum) != RC_OK){
+        RC_message = "Pin page failed  ";
+        return RC_PIN_PAGE_FAILED;
+    }
+
+    int recordOffet = recSlotNum * recordSize;
+    printf("\n Delete record Old record data %s",page->data);
+    memset(page->data+recordOffet, '\0', recordSize);  // setting values to null
+    printf("\n after Deleting data  %s ",page->data);
+
+    printPageData(page->data);
+
+    tblmgmt_info.totalRecordInTable = tblmgmt_info.totalRecordInTable -1;  // reducing number of record by 1 after deleting record
+
+    if(markDirty(bm,page)!=RC_OK){
+        RC_message = "Page Mark Dirty Failed";
+        return RC_MARK_DIRTY_FAILED;
+    }
+    if(unpinPage(bm,page)!=RC_OK){
+        RC_message = "Unpin Page failed Failed";
+        return RC_UNPIN_PAGE_FAILED;
+    }
 
     return RC_OK;
 }
