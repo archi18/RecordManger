@@ -96,6 +96,9 @@ main (void)
     createTable(name,schema);
     callOpenTable(name);*/
     testInsertManyRecords();
+    testRecords();
+    testCreateTableAndInsert();
+
     printf("\n -------------success-------------");
     return 0;
 }
@@ -161,10 +164,11 @@ testRecords (void)
     setAttr(r, schema, 2, stringToValue("i4"));
     getAttr(r, schema, 2, &value);
     OP_TRUE(stringToValue("i4"), value, valueEquals, "third attr after setting");
-    freeVal(value);
 
     freeRecord(r);
     TEST_DONE();
+    freeVal(value);
+
 }
 
 // ************************************************************ 
@@ -222,6 +226,11 @@ testCreateTableAndInsert (void)
     free(rids);
     free(table);
     TEST_DONE();
+
+    {
+        printf("\n exiting---->");
+        return;
+    }
 }
 
 void
@@ -453,10 +462,6 @@ testInsertManyRecords(void)
 
     TEST_CHECK(getRecord(table, rids[randomRec], r));
     ASSERT_EQUALS_RECORDS(fromTestRecord(schema, updates[0]), r, schema, "compare records");
-    {
-        printf("\n exiting---->");
-        return;
-    }
     TEST_CHECK(closeTable(table));
     TEST_CHECK(deleteTable("test_table_t"));
     TEST_CHECK(shutdownRecordManager());
@@ -464,6 +469,7 @@ testInsertManyRecords(void)
     freeRecord(r);
     free(table);
     TEST_DONE();
+
 }
 
 void testScans (void)

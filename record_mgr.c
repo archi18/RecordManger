@@ -43,7 +43,10 @@ RC initRecordManager (void *mgmtData){
 }
 
 RC shutdownRecordManager (){
-
+    if(ph != ((char *)0)){
+        free(ph);
+    }
+    printf(" \n ==============Shutdown record manager success=====================");
     return RC_OK;
 }
 
@@ -96,7 +99,13 @@ RC createTable (char *name, Schema *schema){
     free(ph);
     return RC_OK;
 }
-
+/***
+ *
+ * Note : in case error check ph : whether it has colsed or memeory reallocated
+ * @param rel
+ * @param name
+ * @return
+ */
 RC openTable (RM_TableData *rel, char *name){
     ph = (SM_PageHandle) malloc(PAGE_SIZE);
 
@@ -186,15 +195,34 @@ RC closeTable (RM_TableData *rel){
 
     return RC_OK;
 }
-
+/***
+ * Note : in case of error remove shtdown buffer manager
+ * Note : also check code for destroy page file
+ * @param name
+ * @return
+ */
 RC deleteTable (char *name){
-    
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
+    if(name == ((char *)0)){
+        RC_message = "Table name can not be null ";
+        return RC_NULL_IP_PARAM;
+    }
+   /* if(shutdownBufferPool(bm) != RC_OK){
+        RC_message = "Shutdown Buffer Pool Failed";
+        return RC_BUFFER_SHUTDOWN_FAILED;
+    }*/
+
+    if(destroyPageFile(name) != RC_OK){
+        RC_message = "Destroyt Page File Failed";
+        return RC_FILE_DESTROY_FAILED;
+    }
+
     return RC_OK;
 }
 
 int getNumTuples (RM_TableData *rel){
 
-    return RC_OK;
+    return tblmgmt_info.totalRecordInTable;
 }
 
 
@@ -452,6 +480,12 @@ RC createRecord (Record **record, Schema *schema){
 }
 
 RC freeRecord (Record *record){
+    if(record == ((Record *)0)){
+        RC_message = " Record is  null";
+        return RC_NULL_IP_PARAM;
+    }
+    if(record->data != ((char *)0))
+        free(record->data);
     free(record);
     return RC_OK;
 }
