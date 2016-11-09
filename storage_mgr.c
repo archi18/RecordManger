@@ -27,7 +27,7 @@ void initStorageManager (void){
 // This method creates a new page file of size equal to one page and the file created contains '\0' bytes
 RC createPageFile (char *fileName){
     sm_file = fopen(fileName,"w+");
-    char *appendEmptyBlock =  calloc(PAGE_SIZE , sizeof(char));
+    char *appendEmptyBlock =  malloc(PAGE_SIZE * sizeof(char));
     if (!sm_file){
         return RC_FILE_NOT_FOUND;
     }
@@ -42,7 +42,7 @@ RC createPageFile (char *fileName){
 
 //This method checks if the file mentioned in input exists and opens the existing file
 RC openPageFile (char *fileName, SM_FileHandle *fHandle){
-    sm_file = fopen(fileName,"rb+");
+    sm_file = fopen(fileName,"rb+"); ///previously rb+
     if (!sm_file){
         return RC_FILE_NOT_FOUND;
     }
@@ -94,7 +94,8 @@ RC readBlock (int pageNum, SM_FileHandle *fHandle, SM_PageHandle memPage){
         return RC_READ_NON_EXISTING_PAGE;
 
     fseek(sm_file,PAGE_SIZE * pageNum, SEEK_SET);
-    size_t ret_Read = fread(memPage, PAGE_SIZE, sizeof(char),sm_file);
+    size_t ret_Read = fread(memPage, 1, PAGE_SIZE,sm_file);
+    printf("\nStorage mgr Read rate %d",ret_Read);
     if(ret_Read <= ZERO)
         return RC_READ_NON_EXISTING_PAGE;
     updateSmFileHandle(fHandle->totalNumPages,pageNum,fHandle);

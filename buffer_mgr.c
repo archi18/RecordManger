@@ -10,7 +10,7 @@
 PIN_PAGE *firstPage=NULL;
 
 RC updateBMPageHandle(PageNumber , char * ,BM_PageHandle *);
-
+void printPageDataBF(char *);
 SM_FileHandle *fh;
 BM_BufferPool bm_BufferPool;
 BM_PageHandle bm_PageHandle;
@@ -273,7 +273,7 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
         tempPage->isDirty = FALSE;
         page->data =tempPage->data;
         page->pageNum = pageNum;
-
+      //  printPageDataBF(page->data);
 
         buffPageLookUpTbl[indexFrame]=pageNum;
         updatePinPageAtLoc(firstPage,indexFrame,pageNum,NULL);
@@ -289,6 +289,16 @@ RC pinPage (BM_BufferPool *const bm, BM_PageHandle *const page,
     }
 
     return RC_OK;
+}
+
+void printPageDataBF(char *pageData){
+    printf("\n BufferMgr Prining page Data ==>");
+
+    for(int i=0; i<PAGE_SIZE; i++){
+        printf("%c",pageData[i]);
+    }
+    printf("\n exiting ");
+    printf("\n exiting ");
 }
 
 // Statistics Interface

@@ -90,11 +90,12 @@ main_dub (void)
 int
 main (void)
 {
-    Schema *schema= callSchema();
+/*    Schema *schema= callSchema();
     char *name="employee_name";
 
     createTable(name,schema);
-    callOpenTable(name);
+    callOpenTable(name);*/
+    testInsertManyRecords();
     printf("\n -------------success-------------");
     return 0;
 }
@@ -427,11 +428,17 @@ testInsertManyRecords(void)
         realInserts[i].a = i;
         r = fromTestRecord(schema, realInserts[i]);
         TEST_CHECK(insertRecord(table,r));
+
         rids[i] = r->id;
     }
-    TEST_CHECK(closeTable(table));
-    TEST_CHECK(openTable(table, "test_table_t"));
 
+    TEST_CHECK(closeTable(table));
+
+    TEST_CHECK(openTable(table, "test_table_t"));
+    {
+        printf("\n exiting---->");
+        return;
+    }
     // retrieve records from the table and compare to expected final stage
     for(i = 0; i < numInserts; i++)
     {

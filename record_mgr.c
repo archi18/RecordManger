@@ -28,6 +28,8 @@ typedef struct TableMgmt_info{
     int blkFctr;
     RID firstFreeLoc;
     RM_TableData *rm_tbl_data;
+    BM_PageHandle pageHandle;
+    BM_BufferPool bufferPool;
 }TableMgmt_info;
 
 TableMgmt_info tblmgmt_info;
@@ -74,8 +76,12 @@ RC createTable (char *name, Schema *schema){
 
     tblmgmt_info.firstFreeLoc.page =1;
     tblmgmt_info.firstFreeLoc.slot =0;
+    tblmgmt_info.totalRecordInTable =0;
 
     sprintf(tableMetadata+ strlen(tableMetadata),"$%d:%d$",tblmgmt_info.firstFreeLoc.page,tblmgmt_info.firstFreeLoc.slot);
+
+    sprintf(tableMetadata+ strlen(tableMetadata),"?%d?",tblmgmt_info.totalRecordInTable);
+
     memmove(ph,tableMetadata,PAGE_SIZE);
 
     if (openPageFile(name, &fh) != RC_OK) {
@@ -94,9 +100,9 @@ RC createTable (char *name, Schema *schema){
 RC openTable (RM_TableData *rel, char *name){
     ph = (SM_PageHandle) malloc(PAGE_SIZE);
 
-    BM_PageHandle *h = MAKE_PAGE_HANDLE();
+    BM_PageHandle *h = &tblmgmt_info.pageHandle;
 
-    BM_BufferPool *bm = MAKE_POOL();
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
 
     initBufferPool(bm, name, 3, RS_FIFO, NULL);
 
@@ -121,6 +127,62 @@ RC openTable (RM_TableData *rel, char *name){
 }
 
 RC closeTable (RM_TableData *rel){
+    char tableMetadata[PAGE_SIZE];
+    BM_PageHandle *page = &tblmgmt_info.pageHandle;
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
+    char *pageData;   //user for convinient to hangle page data , do not use malloc and free. its is pointer.
+    memset(tableMetadata,'\0',PAGE_SIZE);
+
+    sprintf(tableMetadata,"%s|",rel->name);
+
+    int recordSize = tblmgmt_info.sizeOfRec;
+    sprintf(tableMetadata+ strlen(tableMetadata),"%d[",rel->schema->numAttr);
+
+    for(int i=0; i<rel->schema->numAttr; i++){
+        sprintf(tableMetadata+ strlen(tableMetadata),"(%s:%d~%d)",rel->schema->attrNames[i],rel->schema->dataTypes[i],rel->schema->typeLength[i]);
+    }
+    sprintf(tableMetadata+ strlen(tableMetadata),"]%d{",rel->schema->keySize);
+
+    for(int i=0; i<rel->schema->keySize; i++){
+        sprintf(tableMetadata+ strlen(tableMetadata),"%d",rel->schema->keyAttrs[i]);
+        if(i<(rel->schema->keySize-1))
+            strcat(tableMetadata,":");
+    }
+    strcat(tableMetadata,"}");
+
+    sprintf(tableMetadata+ strlen(tableMetadata),"$%d:%d$",tblmgmt_info.firstFreeLoc.page,tblmgmt_info.firstFreeLoc.slot);
+
+    sprintf(tableMetadata+ strlen(tableMetadata),"?%d?",tblmgmt_info.totalRecordInTable);
+
+
+
+    if(pinPage(bm,page,0) != RC_OK){
+        RC_message = "Pin page failed  ";
+        return RC_PIN_PAGE_FAILED;
+    }
+
+    printf("\n old Pin page %s",page->data);
+
+    memmove(page->data,tableMetadata,PAGE_SIZE);
+
+    if( markDirty(bm,page)!=RC_OK){
+        RC_message = "Page 0 Mark Dirty Failed";
+        return RC_MARK_DIRTY_FAILED;
+    }
+
+    if(  unpinPage(bm,page)!=RC_OK){
+        RC_message = "Unpin Page 0 failed Failed";
+        return RC_UNPIN_PAGE_FAILED;
+    }
+
+    printf("\n New Pin page %s",page->data);
+
+    printf("\n table data before closing file :%s ",page->data);
+
+    if(shutdownBufferPool(bm) != RC_OK){
+        RC_message = "Shutdown Buffer Pool Failed";
+        return RC_BUFFER_SHUTDOWN_FAILED;
+    }
 
     return RC_OK;
 }
@@ -137,11 +199,72 @@ int getNumTuples (RM_TableData *rel){
 
 
 // handling records in a table
+
+/***
+ * in case of error check pin page [pageHandle , bufferPool] memeory not allocated to pageHandle data
+ * @param rel
+ * @param record
+ * @return
+ */
 RC insertRecord (RM_TableData *rel, Record *record){
 
+    printf("\n inside insertRecord \n");
+    printTableInfoDetails(&tblmgmt_info);
     char *pageData;   //user for convinient to hangle page data , do not use malloc and free. its is pointer.
     int recordSize = tblmgmt_info.sizeOfRec;
+    int freePageNum = tblmgmt_info.firstFreeLoc.page;  // record will be inserted at this page number
+    int freeSlotNum = tblmgmt_info.firstFreeLoc.slot;  // record will be inserted at this slot
+    int blockfactor = tblmgmt_info.blkFctr;
+    BM_PageHandle *page = &tblmgmt_info.pageHandle;
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
+    printf(" Recored inserted at page : slot [%d|%d]",freePageNum,freeSlotNum);
 
+    if(freePageNum < 1 || freeSlotNum < 0){
+        RC_message = "Invalid page|Slot number ";
+        return RC_IVALID_PAGE_SLOT_NUM;
+    }
+
+    if(pinPage(bm,page,freePageNum) != RC_OK){
+        RC_message = "Pin page failed  ";
+        return RC_PIN_PAGE_FAILED;
+    }
+
+    printf("\n Pin page %d",page->pageNum);
+
+    pageData = page->data;  // assigning pointer from h to pagedata for convineint
+
+    int offset =  freeSlotNum * recordSize; //staring postion of record; slot Start from 0 position
+
+    record->data[recordSize-1]='$';
+    memcpy(pageData+offset, record->data, recordSize);
+
+    if( markDirty(bm,page)!=RC_OK){
+        RC_message = "Page Mark Dirty Failed";
+        return RC_MARK_DIRTY_FAILED;
+    }
+
+    if(  unpinPage(bm,page)!=RC_OK){
+        RC_message = "Unpin Page failed Failed";
+        return RC_UNPIN_PAGE_FAILED;
+    }
+
+    //use while retring record back
+
+    record->id.page = freePageNum;  // storing page number for record
+    record->id.slot = freeSlotNum;  // storing slot number for record
+
+    printPageData(pageData);
+
+    tblmgmt_info.totalRecordInTable = tblmgmt_info.totalRecordInTable +1;
+
+    if(freeSlotNum ==(blockfactor-1)){
+        tblmgmt_info.firstFreeLoc.page=freePageNum+1;
+        tblmgmt_info.firstFreeLoc.slot =0;
+    }else{
+        tblmgmt_info.firstFreeLoc.slot = freeSlotNum +1;
+    }
+    printf(" Updated Recored inserted at page : slot [%d|%d]",tblmgmt_info.firstFreeLoc.page,tblmgmt_info.firstFreeLoc.slot);
+    printf("\n exiting insert record ");
     return RC_OK;
 }
 
@@ -154,9 +277,44 @@ RC updateRecord (RM_TableData *rel, Record *record){
 
     return RC_OK;
 }
-
+/***
+ *it will give record at perticular page number and slot number
+ *Note : in case of error look for last charcter in record '$'
+ * Note : make sure correct page number is set in file
+ * @param rel
+ * @param id
+ * @param record
+ * @return
+ */
 RC getRecord (RM_TableData *rel, RID id, Record *record){
 
+    char *pageData;   //user for convinient to hangle page data , do not use malloc and free. its is pointer.
+    int recordSize = tblmgmt_info.sizeOfRec;
+    int recPageNum = record->id.page;  // record will be searched at this page number
+    int recSlotNum = record->id.slot;  // record will be searched at this slot
+    int blockfactor = tblmgmt_info.blkFctr;
+    BM_PageHandle *page = &tblmgmt_info.pageHandle;
+    BM_BufferPool *bm = &tblmgmt_info.bufferPool;
+
+    printf("Looking for record at page [%] at slot [%d] ",recPageNum,recSlotNum);
+
+    if(pinPage(bm,page,recPageNum) != RC_OK){
+        RC_message = "Pin page failed  ";
+        return RC_PIN_PAGE_FAILED;
+    }
+
+    int recordOffet = recSlotNum * recordSize;  // this will give starting point of record. remember last value in record is '$' replce it wil
+    memcpy(record->data, page->data, recordSize); // case of error check boundry condition also check for reccord->data size
+
+    printf("\n Record readed from file %s",record->data);
+
+    record->data[recordSize-1]='\0'; // case of error check boundry condition
+
+    if(  unpinPage(bm,page)!=RC_OK){
+        RC_message = "Unpin Page failed Failed";
+        return RC_UNPIN_PAGE_FAILED;
+    }
+    
     return RC_OK;
 }
 
@@ -171,7 +329,11 @@ RC next (RM_ScanHandle *scan, Record *record){
 
     return RC_OK;
 }
-
+/***
+ *
+ * @param scan
+ * @return
+ */
 RC closeScan (RM_ScanHandle *scan){
 
     return RC_OK;
@@ -376,12 +538,6 @@ RC setAttr (Record *record, Schema *schema, int attrNum, Value *value){
            case DT_STRING: {
                int strLength =schema->typeLength[attrNum];
                sprintf(record->data + offset, "%s", value->v.stringV);
-               char buf[strLength];
-               memset(&buf,'\0',strLength);
-               for(int i=strLength-1, j =strlen(value->v.stringV)-1; i>=(strLength-strlen(value->v.stringV)); i--,j--){
-                    buf[i]=value->v.stringV[j];
-               }
-               printRecord(&buf,strLength);
                break;
            }
            case DT_FLOAT:
@@ -435,6 +591,9 @@ void readSchemaFromFile(RM_TableData *rel, BM_PageHandle *h){
     int *sizes = getAtributeSize(atrMetadata,totalAtribute);
     int *keys =   extractKeyDt(atrKeydt,totalKeyAtr);
     int *pageSolt = extractFirstFreePageSlot(freeVacSlot);
+    int totaltuples = extractTotalRecordsTab(&metadata);
+
+    printf(" total records %d",totaltuples);
 
     int i;
     char **cpNames = (char **) malloc(sizeof(char*) * totalAtribute);
@@ -474,7 +633,7 @@ void readSchemaFromFile(RM_TableData *rel, BM_PageHandle *h){
     tblmgmt_info.blkFctr = (PAGE_SIZE / tblmgmt_info.sizeOfRec);
     tblmgmt_info.firstFreeLoc.page =pageSolt[0];
     tblmgmt_info.firstFreeLoc.slot =pageSolt[1];
-
+    tblmgmt_info.totalRecordInTable = 0;
     printf(" \n Record Size %d ",tblmgmt_info.sizeOfRec);
     printf(" \n Blocking factor %d ",tblmgmt_info.blkFctr);
 
@@ -744,6 +903,30 @@ int * extractFirstFreePageSlot(char *data){
 }
 
 /*
+ *
+ *This function will extract total no of records from page ? ?
+ *
+ */
+
+int extractTotalRecordsTab(char *scmData){
+    char *atrData = (char *) malloc(sizeof(char)*10);
+    memset(atrData,'\0',sizeof(char)*10);
+    int i=0;
+    while(scmData[i] != '?'){
+        i++;
+    }
+    i++;
+    int j=0;
+    for(j=0;scmData[i] != '?'; j++){
+        atrData[j] = scmData[i++];
+    }
+    atrData[j]='\0';
+    // printf(" Attribute data : %s ",atrData);
+
+    return atoi(atrData);
+}
+
+/*
  *   returns offset/string posing of perticular attribute
  *   atrnum is offset we are seeking for
  */
@@ -788,4 +971,14 @@ void printTableInfoDetails(TableMgmt_info *tab_info){
     printf(" \n total Records in page (blkftr) [%d]",tab_info->blkFctr);
     printf(" \n total Attributes in table [%d]",tab_info->rm_tbl_data->schema->numAttr);
     printf(" \n next available page and slot [%d:%d]",tab_info->firstFreeLoc.page,tab_info->firstFreeLoc.slot);
+}
+
+void printPageData(char *pageData){
+    printf("\n Prining page Data ==>");
+
+    for(int i=0; i<PAGE_SIZE; i++){
+        printf("%c",pageData[i]);
+    }
+    printf("\n exiting ");
+    printf("\n exiting ");
 }
